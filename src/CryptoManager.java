@@ -74,5 +74,25 @@ public class CryptoManager {
         return finalBytes;
 	}
 	
-	
+	public byte[] decryptWithPublicKey(File file) throws IOException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException{
+		BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
+
+		int length = (int) file.length();
+		int count = 0;
+		
+		byte[] byteArray = new byte[length];
+
+		int a = 0;
+		while(a != -1 && count < length){
+			a = bufferedInputStream.read();
+			System.out.println(a);
+			byteArray[count] = (byte) a;
+			count++;
+		}
+		
+		Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+		rsaCipher.init(Cipher.DECRYPT_MODE, publicKey);
+        byte[] finalBytes = rsaCipher.doFinal(byteArray);
+        return finalBytes;
+	}
 }
