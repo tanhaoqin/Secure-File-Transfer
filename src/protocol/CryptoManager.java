@@ -1,7 +1,9 @@
+package protocol;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -10,7 +12,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.BadPaddingException;
@@ -29,18 +33,18 @@ public class CryptoManager {
 	
 	public static final String AES_ENCRYPTION = "AES/ECB/PKCS5Padding";
 	public static final String RSA_ENCRYPTION = "RSA/ECB/PKCS1Padding";
+	
 	public CryptoManager(File privateKeyFile) throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
 		FileInputStream privateKeyFileStream = new FileInputStream(privateKeyFile);
 		byte[] privateKeyArray = new byte[privateKeyFileStream.available()];
 		privateKeyFileStream.read(privateKeyArray);
 		privateKeyFileStream.close();
 		
-		X509EncodedKeySpec privateKeySpec = new X509EncodedKeySpec(privateKeyArray);
+		PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyArray);
 
-		KeyFactory keyFactory = KeyFactory.getInstance(RSA_ENCRYPTION);
+		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
 		
 		privateKey = keyFactory.generatePrivate(privateKeySpec);
-
 		
 	}
 
@@ -52,7 +56,7 @@ public class CryptoManager {
 		
 		X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyArray);
 		
-		KeyFactory keyFactory = KeyFactory.getInstance(RSA_ENCRYPTION);
+		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
 		publicKey = keyFactory.generatePublic(publicKeySpec);
 	}
 	
@@ -100,8 +104,8 @@ public class CryptoManager {
         return finalBytes;
 	}
 	
-	private void generateAES() throws NoSuchAlgorithmException{
-		KeyGenerator keyGen = KeyGenerator.getInstance(AES_ENCRYPTION);
+	public void generateAES() throws NoSuchAlgorithmException{
+		KeyGenerator keyGen = KeyGenerator.getInstance("AES");
         aesKey = keyGen.generateKey();
 	}
 	
@@ -151,5 +155,10 @@ public class CryptoManager {
 		aesCipher.init(Cipher.DECRYPT_MODE, key);
         byte[] finalBytes = aesCipher.doFinal(byteArray);
         return finalBytes;
+	}
+	
+	public void writeBytesToFile(byte[] bytes, File file) throws IOException{
+		FileOutputStream fileOutputStream = new FileOutputStream(file);
+		fileOutputStream.write(bytes);
 	}
 }
