@@ -36,7 +36,7 @@ public class CryptoManager {
 		
 		X509EncodedKeySpec privateKeySpec = new X509EncodedKeySpec(privateKeyArray);
 
-		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+		KeyFactory keyFactory = KeyFactory.getInstance("RSA/ECB/PKCS1Padding");
 		
 		privateKey = keyFactory.generatePrivate(privateKeySpec);
 
@@ -51,7 +51,7 @@ public class CryptoManager {
 		
 		X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyArray);
 		
-		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+		KeyFactory keyFactory = KeyFactory.getInstance("RSA/ECB/PKCS1Padding");
 		publicKey = keyFactory.generatePublic(publicKeySpec);
 	}
 	
@@ -100,7 +100,7 @@ public class CryptoManager {
 	}
 	
 	private void generateAES() throws NoSuchAlgorithmException{
-		KeyGenerator keyGen = KeyGenerator.getInstance("AES/CBC/PKCS5Padding");
+		KeyGenerator keyGen = KeyGenerator.getInstance("AES/ECB/PKCS5Padding");
         aesKey = keyGen.generateKey();
 	}
 	
