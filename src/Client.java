@@ -23,71 +23,77 @@ import javax.crypto.NoSuchPaddingException;
 
 public class Client {
 
-	private static final String LOCALHOST = "127.0.0.1";
-	
+	public static final String LOCALHOST = "127.0.0.1";
 	public static final String FILE_TRANSFER_START = "FILE_TRANSFER_START";
 	public static final String FILE_TRANSFER_END = "FILE_TRANSFER_END";
 
-	public static final String CERTIFICATE_REQUEST = "Hello SecStore, please prove your identity!";
+	public final String CERTIFICATE_REQUEST = "Hello SecStore, please prove your identity!";
 	
-	private static Socket socket;
+	private Socket socket;
+	private InputStream in;
+	public Socket getSocket() {
+		return socket;
+	}
 
-	private static InputStream in;
+	public void setSocket(Socket socket) {
+		this.socket = socket;
+	}
 
-	private static OutputStream out;
-	
+	private OutputStream out;
 	byte[] buffer;
 	
 	public static void main(String[] args) throws UnknownHostException, IOException {
-		
-		socket = new Socket(LOCALHOST, 4321);
+		Client client = new Client();
+		client.setSocket(new Socket(LOCALHOST, 4321));
 		System.out.println("Client connected");
-		in = socket.getInputStream();
-		out = socket.getOutputStream();
 		
 		System.out.println(System.getProperty("user.dir"));
 		
-		uploadFile(new File("certs//server_Tan Hao Qin.csr"));
+		client.uploadFile(new File("certs//server_Tan Hao Qin.csr"));
 		
 	}
 	
-	public static void uploadFile(File file) throws IOException{
-		BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
-		BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(out);
-		PrintWriter printWriter = new PrintWriter(out);
+	public void uploadFile(byte[] fileBytes, BufferedOutputStream bufferedOutputStream,
+			PrintWriter printWriter) throws IOException{
 		
-		printWriter.write(FILE_TRANSFER_START+"\n");
-		printWriter.flush();
-		printWriter.write(file.getName()+"\n");
-		printWriter.flush();
-		System.out.println(Long.toString(file.length())+"\n");
-		printWriter.write(Long.toString(file.length())+"\n");
-		printWriter.flush();
-
-		
-		int a = 0;
-		while(a != -1){
-			a = bufferedInputStream.read();
-			System.out.println(a);
-			if(a != -1){
-				bufferedOutputStream.write(a);
-				bufferedOutputStream.flush();
-			}
+		for(byte fileByte: fileBytes){
+			bufferedOutputStream.write(fileByte);
+			bufferedOutputStream.flush();
 		}
-		in.close();
-		out.close();
+	}
+
+	public void uploadRSA(File file, File publicKeyFile){
+		byte[] fileBytes;
+		try{
+			BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
+			fileBytes = new byte[(int) file.length()];
+			bufferedInputStream.read(fileBytes);
+		}catch (IOException e){
+			e.printStackTrace();
+			return;
+		}
+		byte[] cipherText = encodeRSA(fileBytes, new FileInputStream(publicKeyFile));
+		
+		BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(socket.getOutputStream());
+		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
+		
+		printWriter.println(FILE_TRANSFER_START);
+//		printWriter.println(file.getName());
+		System.out.println(file.length());
+		printWriter.println(file.length());
 	}
 	
-	public static byte[] encodeRSA(FileInputStream plaintext, 
+	public byte[] encodeRSA(byte[] plaintext, 
 			FileInputStream publicKeyCertStream) throws CertificateException, NoSuchAlgorithmException, 
 			NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException{
 		
 		CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
 		X509Certificate certificate = (X509Certificate)certificateFactory.
 				generateCertificate(publicKeyCertStream);
+		
 		PublicKey publicKey = certificate.getPublicKey();
 		Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 		rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey);
-		return rsaCipher.doFinal();
+		return rsaCipher.doFinal(plaintext);
 	}
 }

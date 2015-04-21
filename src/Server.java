@@ -8,7 +8,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.Key;
 
+
+
 import javax.crypto.spec.SecretKeySpec;
+
+import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
 
 public class Server {
@@ -38,9 +42,11 @@ public class Server {
 
 class ClientHandler implements Runnable{
 
-	private static final String END_PROTOCOL = "END_PROTOCOL";
-	private static final String IDENTITY_PROTOCOL = "IDENTITY_PROTOCOL";
-	private static final String PUBLIC_KEY = "PUBLIC_KEY";
+	public static final String END_PROTOCOL = "END_PROTOCOL";
+	public static final String IDENTITY_PROTOCOL = "IDENTITY_PROTOCOL";
+	public static final String PUBLIC_KEY = "PUBLIC_KEY";
+	public static final String RESEND_KEY = "RESEND_KEY";
+	public static final String KEY_OK = "KEY_OK";
 	
 	Socket socket;
 	BufferedReader in;
@@ -51,6 +57,7 @@ class ClientHandler implements Runnable{
 		this.socket = socket;
 		this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		this.out = new PrintWriter(socket.getOutputStream());
+		
 	}
 	
 	/*
@@ -105,17 +112,33 @@ class ClientHandler implements Runnable{
 	 * 2.	Client sends session key encrypted by the server's public key
 	 * 3.	Server decrypts the session key and sends back a digest of the session key
 	 * 4.	Client checks that the digests match
+	 * 5. 	Client acknowledges that the digests match
+	 * 6.	If acknoledgement is not received, server tells client to resend session key,
+	 * 		repeat from step 2.
+	 * 7.	End
 	 **/
 	public Key acceptSessionKey(Socket socket){
 		
-		InputStreamReader in;
-		char[] cbuf = new char[128];
+		BufferedReader in;
+		PrintWriter out;
+		String sessionKeyString;
+		String keyDigest;
 				
 		while(true){
 			try{
-				in = new InputStreamReader(socket.getInputStream());
-				in.read(cbuf);
-				break;
+				in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				out = new PrintWriter(socket.getOutputStream(), true);
+				sessionKeyString = in.readLine();
+				keyDigest = in.readLine();
+				if (keyDigest.length() > sessionKeyString.length()){
+					out.println(RESEND_KEY);
+					continue;
+				}
+				
+				out.println(keyDigest);
+				if(in.readLine().equals(KEY_OK))
+					break;
+				
 			}catch(IOException e){
 				System.out.println(e.getMessage());
 				try{
@@ -124,11 +147,7 @@ class ClientHandler implements Runnable{
 			}
 		}
 		
-		byte[] keyBuffer = new byte[128];
-		for(int i = 0; i < cbuf.length; i++)
-			keyBuffer[i] = (byte) cbuf[i];
-		SecretKeySpec sessionKey = new SecretKeySpec(keyBuffer, "AES");
-		
-		
+		byte[] secretKeyBytes = Base64.decode(sessionKeyString);
+		return new SecretKeySpec(secretKeyBytes, "AES");
 	}
 }

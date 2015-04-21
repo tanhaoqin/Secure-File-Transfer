@@ -25,9 +25,10 @@ public class CryptoManager {
 	
 	private PrivateKey privateKey;
 	private PublicKey publicKey;
-	
 	private SecretKey aesKey;
 	
+	public static final String AES_ENCRYPTION = "AES/ECB/PKCS5Padding";
+	public static final String RSA_ENCRYPTION = "RSA/ECB/PKCS1Padding";
 	public CryptoManager(File privateKeyFile) throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
 		FileInputStream privateKeyFileStream = new FileInputStream(privateKeyFile);
 		byte[] privateKeyArray = new byte[privateKeyFileStream.available()];
@@ -36,7 +37,7 @@ public class CryptoManager {
 		
 		X509EncodedKeySpec privateKeySpec = new X509EncodedKeySpec(privateKeyArray);
 
-		KeyFactory keyFactory = KeyFactory.getInstance("RSA/ECB/PKCS1Padding");
+		KeyFactory keyFactory = KeyFactory.getInstance(RSA_ENCRYPTION);
 		
 		privateKey = keyFactory.generatePrivate(privateKeySpec);
 
@@ -51,7 +52,7 @@ public class CryptoManager {
 		
 		X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyArray);
 		
-		KeyFactory keyFactory = KeyFactory.getInstance("RSA/ECB/PKCS1Padding");
+		KeyFactory keyFactory = KeyFactory.getInstance(RSA_ENCRYPTION);
 		publicKey = keyFactory.generatePublic(publicKeySpec);
 	}
 	
@@ -71,7 +72,7 @@ public class CryptoManager {
 			count++;
 		}
 		
-		Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
 		rsaCipher.init(Cipher.ENCRYPT_MODE, privateKey);
         byte[] finalBytes = rsaCipher.doFinal(byteArray);
         return finalBytes;
@@ -93,14 +94,14 @@ public class CryptoManager {
 			count++;
 		}
 		
-		Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
 		rsaCipher.init(Cipher.DECRYPT_MODE, publicKey);
         byte[] finalBytes = rsaCipher.doFinal(byteArray);
         return finalBytes;
 	}
 	
 	private void generateAES() throws NoSuchAlgorithmException{
-		KeyGenerator keyGen = KeyGenerator.getInstance("AES/ECB/PKCS5Padding");
+		KeyGenerator keyGen = KeyGenerator.getInstance(AES_ENCRYPTION);
         aesKey = keyGen.generateKey();
 	}
 	
@@ -124,7 +125,7 @@ public class CryptoManager {
 			count++;
 		}
 		
-		Cipher aesCipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+		Cipher aesCipher = Cipher.getInstance(AES_ENCRYPTION);
 		aesCipher.init(Cipher.ENCRYPT_MODE, key);
         byte[] finalBytes = aesCipher.doFinal(byteArray);
         return finalBytes;
@@ -146,7 +147,7 @@ public class CryptoManager {
 			count++;
 		}
 		
-		Cipher aesCipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+		Cipher aesCipher = Cipher.getInstance(AES_ENCRYPTION);
 		aesCipher.init(Cipher.DECRYPT_MODE, key);
         byte[] finalBytes = aesCipher.doFinal(byteArray);
         return finalBytes;
