@@ -42,6 +42,7 @@ class ClientHandler implements Runnable{
 	PrintWriter out;
 	
 	public ClientHandler(Socket socket) throws IOException {
+		System.out.println("Client connected");
 		this.socket = socket;
 		this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		this.out = new PrintWriter(socket.getOutputStream());
@@ -51,14 +52,15 @@ class ClientHandler implements Runnable{
 	public void run() {
 		String input;
 		try {
-			while((END_PROTOCOL).equals(input = in.readLine())){
-				System.out.println(input);
-				if(input.equals(Client.FILE_TRANSFER_START)){
+			while(!(END_PROTOCOL).equals(input = in.readLine())){
+//				Handle file transfer
+				if(Client.FILE_TRANSFER_START.equals(input)){
 					
 					String fileName = "server//"+in.readLine();
 					System.out.println("File name: "+fileName);
 					
 					int length = Integer.parseInt(in.readLine());
+
 					int count = 0;
 					
 					byte[] byteArray = new byte[length];
@@ -67,8 +69,8 @@ class ClientHandler implements Runnable{
 
 					int a = 0;
 					while(a != -1 && count < length){
-						System.out.println(a);
 						a = bufferedInputStream.read();
+						System.out.println(a);
 						byteArray[count] = (byte) a;
 						count++;
 					}
@@ -76,6 +78,9 @@ class ClientHandler implements Runnable{
 					FileOutputStream fileOutputStream = new FileOutputStream(fileName);
 					fileOutputStream.write(byteArray);
 					fileOutputStream.close();
+				}
+				else if(Client.CERTIFICATE_REQUEST.equals(input)){
+					
 				}
 			}
 		} catch (IOException e) {
