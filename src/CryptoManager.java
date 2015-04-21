@@ -16,13 +16,17 @@ import java.security.spec.X509EncodedKeySpec;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 
 
 public class CryptoManager {
 	
-	PrivateKey privateKey;
-	PublicKey publicKey;
+	private PrivateKey privateKey;
+	private PublicKey publicKey;
+	
+	private SecretKey aesKey;
 	
 	public CryptoManager(File privateKeyFile) throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
 		FileInputStream privateKeyFileStream = new FileInputStream(privateKeyFile);
@@ -39,7 +43,7 @@ public class CryptoManager {
 		
 	}
 
-	public void addPublicKey(File publicKeyFile) throws NoSuchAlgorithmException, IOException, InvalidKeySpecException{
+	public void setPublicKey(File publicKeyFile) throws NoSuchAlgorithmException, IOException, InvalidKeySpecException{
 		FileInputStream publicKeyFileStream = new FileInputStream(publicKeyFile);
 		byte[] publicKeyArray = new byte[publicKeyFileStream.available()];
 		publicKeyFileStream.read(publicKeyArray);
@@ -50,7 +54,6 @@ public class CryptoManager {
 		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
 		publicKey = keyFactory.generatePublic(publicKeySpec);
 	}
-	
 	
 	public byte[] encryptWithPrivateKey(File file) throws IOException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException{
 		BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
@@ -93,6 +96,59 @@ public class CryptoManager {
 		Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 		rsaCipher.init(Cipher.DECRYPT_MODE, publicKey);
         byte[] finalBytes = rsaCipher.doFinal(byteArray);
+        return finalBytes;
+	}
+	
+	private void generateAES() throws NoSuchAlgorithmException{
+		KeyGenerator keyGen = KeyGenerator.getInstance("AES/CBC/PKCS5Padding");
+        aesKey = keyGen.generateKey();
+	}
+	
+	public SecretKey getSessionKey(){
+		return aesKey;
+	}
+	
+	public byte[] encryptWithKey(File file, SecretKey key) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException{
+		BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
+
+		int length = (int) file.length();
+		int count = 0;
+		
+		byte[] byteArray = new byte[length];
+
+		int a = 0;
+		while(a != -1 && count < length){
+			a = bufferedInputStream.read();
+			System.out.println(a);
+			byteArray[count] = (byte) a;
+			count++;
+		}
+		
+		Cipher aesCipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+		aesCipher.init(Cipher.ENCRYPT_MODE, key);
+        byte[] finalBytes = aesCipher.doFinal(byteArray);
+        return finalBytes;
+	}
+	
+	public byte[] decryptWithKey(File file, SecretKey key) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException{
+		BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
+
+		int length = (int) file.length();
+		int count = 0;
+		
+		byte[] byteArray = new byte[length];
+
+		int a = 0;
+		while(a != -1 && count < length){
+			a = bufferedInputStream.read();
+			System.out.println(a);
+			byteArray[count] = (byte) a;
+			count++;
+		}
+		
+		Cipher aesCipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+		aesCipher.init(Cipher.DECRYPT_MODE, key);
+        byte[] finalBytes = aesCipher.doFinal(byteArray);
         return finalBytes;
 	}
 }
