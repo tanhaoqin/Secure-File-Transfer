@@ -18,6 +18,8 @@ public class Client {
 	
 	public static final String FILE_TRANSFER_START = "FILE_TRANSFER_START";
 	public static final String FILE_TRANSFER_END = "FILE_TRANSFER_END";
+
+	public static final String CERTIFICATE_REQUEST = "Hello SecStore, please prove your identity!";
 	
 	private static Socket socket;
 
@@ -57,7 +59,11 @@ public class Client {
 		int a = 0;
 		while(a != -1){
 			a = bufferedInputStream.read();
-			bufferedOutputStream.write(a);
+			System.out.println(a);
+			if(a != -1){
+				bufferedOutputStream.write(a);
+				bufferedOutputStream.flush();
+			}
 		}
 		in.close();
 		out.close();
