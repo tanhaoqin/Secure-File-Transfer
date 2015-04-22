@@ -9,6 +9,9 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,10 +24,12 @@ import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
 public class Server {
 
-	
+	public static CryptoManager cryptoManager;
 	private static ServerSocket serverSocket;
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
+		cryptoManager = new CryptoManager();
+		cryptoManager.setPrivateKey(new File("certs//privateServer.der"));
 		
 		serverSocket = new ServerSocket(4321);
 		new Thread(new Runnable() {
@@ -48,6 +53,7 @@ public class Server {
 			}
 		}).start();
 	}
+	
 }
 
 class ClientHandler implements Runnable{
@@ -57,6 +63,9 @@ class ClientHandler implements Runnable{
 	public static final String PUBLIC_KEY = "PUBLIC_KEY";
 	public static final String RESEND_KEY = "RESEND_KEY";
 	public static final String KEY_OK = "KEY_OK";
+	
+	public static final String CERT_TRANSFER_START = "CERT_TRANSFER_START";
+	public static final String CERT_TRANSFER_END = "CERT_TRANSFER_END";
 	
 	Socket socket;
 	
@@ -229,35 +238,38 @@ class ClientHandler implements Runnable{
 	 **/
 	public Key acceptSessionKey(Socket socket){
 		
-		BufferedReader in;
-		PrintWriter out;
-		String sessionKeyString;
-		String keyDigest;
-				
-		while(true){
-			try{
-				in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				out = new PrintWriter(socket.getOutputStream(), true);
-				sessionKeyString = in.readLine();
-				keyDigest = in.readLine();
-				if (keyDigest.length() > sessionKeyString.length()){
-					out.println(RESEND_KEY);
-					continue;
-				}
-				
-				out.println(keyDigest);
-				if(in.readLine().equals(KEY_OK))
-					break;
-				
-			}catch(IOException e){
-				System.out.println(e.getMessage());
-				try{
-					Thread.sleep(100);
-				}catch(InterruptedException e1){};
-			}
-		}
 		
-		byte[] secretKeyBytes = Base64.decode(sessionKeyString);
-		return new SecretKeySpec(secretKeyBytes, "AES");
+		
+		
+//		BufferedReader in;
+//		PrintWriter out;
+//		String sessionKeyString;
+//		String keyDigest;
+//				
+//		while(true){
+//			try{
+//				in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+//				out = new PrintWriter(socket.getOutputStream(), true);
+//				sessionKeyString = in.readLine();
+//				keyDigest = in.readLine();
+//				if (keyDigest.length() > sessionKeyString.length()){
+//					out.println(RESEND_KEY);
+//					continue;
+//				}
+//				
+//				out.println(keyDigest);
+//				if(in.readLine().equals(KEY_OK))
+//					break;
+//				
+//			}catch(IOException e){
+//				System.out.println(e.getMessage());
+//				try{
+//					Thread.sleep(100);
+//				}catch(InterruptedException e1){};
+//			}
+//		}
+//		
+//		byte[] secretKeyBytes = Base64.decode(sessionKeyString);
+//		return new SecretKeySpec(secretKeyBytes, "AES");
 	}
 }

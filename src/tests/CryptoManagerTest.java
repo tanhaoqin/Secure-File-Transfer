@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 
 import javax.crypto.BadPaddingException;
@@ -17,11 +18,12 @@ import protocol.CryptoManager;
 
 public class CryptoManagerTest {
 
-	public static void main(String[] args) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, IOException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchPaddingException {
+	public static void main(String[] args) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, IOException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchPaddingException, CertificateException {
 		
 		//Testing RSA features
-		CryptoManager cryptoManager = new CryptoManager(new File("certs//privateServer.der"));
-		cryptoManager.setPublicKey(new File("certs//publicServer.der"));
+		CryptoManager cryptoManager = new CryptoManager();
+		cryptoManager.setPrivateKey(new File("certs//privateServer.der"));
+		cryptoManager.addPublicKeyFromCert((new File("certs//server.crt")));
 		
 		byte[] encryptedRSATestFile = cryptoManager.encryptWithPrivateKey(new File("tests//haiku.txt"));
 		cryptoManager.writeBytesToFile(encryptedRSATestFile, new File("tests//haikuEncrypted.txt"));
