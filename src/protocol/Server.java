@@ -8,8 +8,10 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.Key;
-
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.zip.CRC32;
 
 import javax.crypto.spec.SecretKeySpec;
 
@@ -62,8 +64,7 @@ class ClientHandler implements Runnable{
 	}
 	
 	/*
-	 * 5.	If digests do not match, return to step 1
-	 * 5.	If digests match, client begins file transfer
+	 
 	 * */
 	@Override
 	public void run() {
@@ -105,6 +106,68 @@ class ClientHandler implements Runnable{
 		}
 	}
 	
+	/**
+	 * Callback when the server receives Client.FILE_TRANSFER_START
+	 * @param socket
+	 * @throws IOException
+	 */
+	public void receiveFile(Socket socket) throws IOException{
+
+		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
+
+		BufferedInputStream bufferedInputStream = new 
+				BufferedInputStream(socket.getInputStream());
+		
+		BufferedReader bufferedReader = new 
+				BufferedReader(new InputStreamReader(socket.getInputStream()));
+		
+		printWriter.println(Client.FILE_TRANSFER_START);
+		printWriter.flush();
+		
+		String transferParameters = bufferedReader.readLine();
+		
+		long fileLength = Long.parseLong(transferParameters.split(",", 2)[0].trim());
+		String fileName= transferParameters.split(",", 2)[1].trim();
+		
+		String acknowledgementParams = String.format("%d, %s", fileLength, fileName);
+		
+		printWriter.println(acknowledgementParams);
+		printWriter.flush();
+		
+		int totalBytesTransferred = 0, numBytesRead;
+		
+		byte[] block = new byte[1000];
+		
+		CRC32 crc32 = new CRC32();
+		
+		while(totalBytesTransferred < fileLength){
+			numBytesRead = bufferedInputStream.read(block);
+			crc32.update(block);
+			
+			long crc32Value = crc32.getValue();
+			printWriter.println(crc32Value);
+			printWriter.flush();
+			
+			if(Client.OK.equals(bufferedReader.readLine())){
+				//TODO: Write blocks to a file
+				totalBytesTransferred += numBytesRead;
+			}
+			
+			else if (Client.FAIL.equals(bufferedReader.readLine()))
+				continue;
+			else throw new IOException("CRC32 something failed");
+		}
+		
+		String ended = bufferedReader.readLine();
+		printWriter.close();
+		bufferedReader.close();
+		bufferedInputStream.close();
+		
+		if(!Client.FILE_TRANSFER_END.equals(ended)){
+			throw new IOException("Client did not exit transfer properly");
+		}
+			
+	}
 	/**
 	 * Obtains the session key from the client. Implements the entire 
 	 * session key handshake with the client. Protocol is as follows:
