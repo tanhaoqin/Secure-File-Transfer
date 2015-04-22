@@ -238,5 +238,9 @@ public class CryptoManager {
 		return new SecretKeySpec(secretKeyByteArray, 0, secretKeyByteArray.length, "AES");
 	}
 	
+	public byte[][] splitBytes(byte[]){
+		
+	}
+	
 }
 

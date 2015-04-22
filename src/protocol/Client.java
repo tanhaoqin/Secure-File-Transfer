@@ -45,7 +45,7 @@ public class Client implements Runnable{
 	public static final String SESSION_KEY_END = "SESSION_KEY_END";
 	public static final String CERTIFICATE_REQUEST = "Hello SecStore, please prove your identity!";
 	public static final String CERTIFICATE_REQUEST_2 = "Give me your certificate signed by CA";
-	public static final String CERTIFICATE_NAME = "secStore.crt";
+	public static final String CERTIFICATE_NAME = "server.crt";
 	
 	public static final int TIME_OUT_LENGTH = 10000;
 	
