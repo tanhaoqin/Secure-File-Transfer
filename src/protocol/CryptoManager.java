@@ -2,14 +2,20 @@ package protocol;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
+import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -31,7 +37,10 @@ public class CryptoManager {
 	public static final String AES_ENCRYPTION = "AES/ECB/PKCS5Padding";
 	public static final String RSA_ENCRYPTION = "RSA/ECB/PKCS1Padding";
 	
-	public CryptoManager(File privateKeyFile) throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
+	public CryptoManager() throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
+	}
+
+	public void setPrivateKey(File privateKeyFile) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException{
 		FileInputStream privateKeyFileStream = new FileInputStream(privateKeyFile);
 		byte[] privateKeyArray = new byte[privateKeyFileStream.available()];
 		privateKeyFileStream.read(privateKeyArray);
@@ -42,9 +51,8 @@ public class CryptoManager {
 		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
 		
 		privateKey = keyFactory.generatePrivate(privateKeySpec);
-		
 	}
-
+	
 	public void setPublicKey(File publicKeyFile) throws NoSuchAlgorithmException, IOException, InvalidKeySpecException{
 		FileInputStream publicKeyFileStream = new FileInputStream(publicKeyFile);
 		byte[] publicKeyArray = new byte[publicKeyFileStream.available()];
@@ -77,6 +85,36 @@ public class CryptoManager {
 		rsaCipher.init(Cipher.ENCRYPT_MODE, privateKey);
         byte[] finalBytes = rsaCipher.doFinal(byteArray);
         bufferedInputStream.close();
+        return finalBytes;
+	}
+	
+	public byte[] encryptWithPublicKey(File file) throws IOException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException{
+		BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
+
+		int length = (int) file.length();
+		int count = 0;
+		
+		byte[] byteArray = new byte[length];
+
+		int a = 0;
+		while(a != -1 && count < length){
+			a = bufferedInputStream.read();
+			System.out.println(a);
+			byteArray[count] = (byte) a;
+			count++;
+		}
+		
+		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
+		rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        byte[] finalBytes = rsaCipher.doFinal(byteArray);
+        bufferedInputStream.close();
+        return finalBytes;
+	}
+	
+	public byte[] encryptWithPublicKey(byte[] byteArray) throws IOException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException{
+		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
+		rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        byte[] finalBytes = rsaCipher.doFinal(byteArray);
         return finalBytes;
 	}
 	
@@ -163,4 +201,15 @@ public class CryptoManager {
 		fileOutputStream.write(bytes);
 		fileOutputStream.close();
 	}
+	
+	public void addPublicKeyFromCert(File certFile) throws FileNotFoundException, CertificateException{
+		FileInputStream certFileStream = new FileInputStream(certFile);
+		
+		CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+		
+		X509Certificate certificate = (X509Certificate) certificateFactory.generateCertificate(certFileStream);
+		
+		this.publicKey = certificate.getPublicKey();
+	}
+	
 }

@@ -13,16 +13,19 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
 import java.util.zip.CRC32;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 import javax.swing.InputMap;
 
 
@@ -33,13 +36,18 @@ public class Client {
 	public static final String LOCALHOST = "127.0.0.1";
 	public static final String FILE_TRANSFER_START = "FILE_TRANSFER_START";
 	public static final String FILE_TRANSFER_END = "FILE_TRANSFER_END";
+	public static final String SESSION_KEY_START = "SESSION_KEY_START";
+	public static final String SESSION_KEY_END = "SESSION_KEY_END";
 	public static final int TIME_OUT_LENGTH = 1000;
 	
 
-	public final String CERTIFICATE_REQUEST = "Hello SecStore, please prove your identity!";
+	public final static String CERTIFICATE_REQUEST = "Hello SecStore, please prove your identity!";
 	
 	private Socket socket;
 	private InputStream in;
+	
+	private CryptoManager cryptoManager;
+	
 	public Socket getSocket() {
 		return socket;
 	}
@@ -51,14 +59,18 @@ public class Client {
 	private OutputStream out;
 	byte[] buffer;
 	
-	public static void main(String[] args) throws UnknownHostException, IOException {
+	public Client() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, IOException {
+		cryptoManager = new CryptoManager();
+	}
+	
+	public static void main(String[] args) throws UnknownHostException, IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
+		
 		Client client = new Client();
 		client.setSocket(new Socket(LOCALHOST, 4321));
 		System.out.println("Client connected");
 		
 		System.out.println(System.getProperty("user.dir"));
 		
-		client.uploadFile(new File("certs//server_Tan Hao Qin.csr"));
 		
 	}
 	
@@ -155,37 +167,90 @@ public class Client {
 		}
 	}
 
-	public void uploadRSA(File file, File publicKeyFile){
-		byte[] fileBytes;
-		try{
-			BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
-			fileBytes = new byte[(int) file.length()];
-			bufferedInputStream.read(fileBytes);
-		}catch (IOException e){
-			e.printStackTrace();
-			return;
-		}
-		byte[] cipherText = encodeRSA(fileBytes, new FileInputStream(publicKeyFile));
-		
-		BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(socket.getOutputStream());
+	public void sendSessionKey(byte[] keyBytes, Socket socket) throws IOException{
+		socket.setSoTimeout(TIME_OUT_LENGTH);
 		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
-		
 
-		System.out.println(file.length());
-		printWriter.println(file.length());
+		BufferedOutputStream bufferedOutputStream = new 
+				BufferedOutputStream(socket.getOutputStream());
+		
+		BufferedReader bufferedReader = new 
+				BufferedReader(new InputStreamReader(socket.getInputStream()));
+		
+		printWriter.println(SESSION_KEY_START);
+		printWriter.flush();
+		if (!SESSION_KEY_START.equals(bufferedReader.readLine()))
+			throw new IOException("Start acknowledgement not received");
+		
+		String transferParams = String.format("%d", keyBytes.length);
+		printWriter.println(transferParams);
+		printWriter.flush();
+		
+		if(!transferParams.equals(bufferedReader.readLine()))
+			throw new IOException("Parameter acknowledgement not received");		
+		
+		int i = 0, initialI = 0;
+		byte[] block;
+		CRC32 crc32 = new CRC32();
+		
+		while(i < keyBytes.length){
+			initialI = i;
+			block = new byte[i + 1000 >= keyBytes.length ? 
+					keyBytes.length - i : 1000];
+			
+			for(int j = initialI; i < initialI + 1000 ; i++){
+				if(i >= keyBytes.length)
+					break;
+				block[i - initialI] = keyBytes[i]; //writes the byte to the block first
+			}
+			crc32.update(block);
+			long crc32Value = crc32.getValue();
+			
+			while(true){
+				bufferedOutputStream.write(block);
+				bufferedOutputStream.flush();
+				if (String.valueOf(crc32Value).equals(bufferedReader.readLine())){
+					printWriter.println(OK);
+					printWriter.flush();
+					break;
+				}else{
+					printWriter.println(FAIL);
+					printWriter.flush();
+					continue;					
+				}
+			}
+			
+		}
+		
+		printWriter.println(SESSION_KEY_END);
+		
+		try{
+			Thread.sleep(100);}
+		catch (InterruptedException e){
+			
+		}
+		finally{
+			socket.close();
+			printWriter.close();
+			bufferedOutputStream.close();
+			bufferedReader.close();
+		}
 	}
 	
-	public byte[] encodeRSA(byte[] plaintext, 
-			FileInputStream publicKeyCertStream) throws CertificateException, NoSuchAlgorithmException, 
-			NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException{
-		
-		CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-		X509Certificate certificate = (X509Certificate)certificateFactory.
-				generateCertificate(publicKeyCertStream);
-		
-		PublicKey publicKey = certificate.getPublicKey();
-		Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-		rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey);
-		return rsaCipher.doFinal(plaintext);
+	private void initAES() throws NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchPaddingException, IOException{
+		cryptoManager.generateAES();		
+		SecretKey sessionKey = cryptoManager.getSessionKey();
+		byte[] keyBytes = cryptoManager.encryptWithPublicKey(sessionKey.getEncoded());
+		sendSessionKey(keyBytes, socket);
+	}
+	
+	public void uploadRSA(File file) throws InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, IOException{
+		byte[] fileBytes = cryptoManager.encryptWithPublicKey(file);
+		uploadFile(fileBytes, socket, file.getName());
+	}
+	
+	public void uploadAES(File file) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, IOException{
+		byte[] fileBytes = cryptoManager.encryptWithKey(file, cryptoManager.getSessionKey());
+		uploadFile(fileBytes, socket, file.getName());
 	}
 }
