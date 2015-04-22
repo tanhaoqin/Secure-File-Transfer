@@ -100,6 +100,12 @@ public class Client implements Runnable{
 		printWriter.println(CERTIFICATE_REQUEST + nonce);
 		printWriter.flush();
 		
+		try{
+			Thread.sleep(20);
+		}catch(Exception e){
+
+		}
+		
 		encryptedResponse = bufferedReader.readLine();
 		
 		printWriter.println(CERTIFICATE_REQUEST_2);
@@ -108,14 +114,25 @@ public class Client implements Runnable{
 		}
 		
 		cryptoManager.addPublicKeyFromCert(new File(CLIENT_LOCATION_DIR+CERTIFICATE_NAME));
+
 		boolean returnValue;
 		if(encryptedResponse.equals(cryptoManager.decryptWithPublicKey(encryptedResponse))){
 			printWriter.println(OK);
 			printWriter.flush();
+			try{
+				Thread.sleep(20);
+			}catch(Exception e){
+
+			}
 			returnValue = true;
 		}else{
 			printWriter.println(FAIL);
 			printWriter.flush();
+			try{
+				Thread.sleep(20);
+			}catch(Exception e){
+
+			}
 			returnValue = false;			
 		}
 		
@@ -160,6 +177,11 @@ public class Client implements Runnable{
 		
 		printWriter.println(FILE_TRANSFER_START);
 		printWriter.flush();
+		try{
+			Thread.sleep(20);
+		}catch(Exception e){
+
+		}
 		if (!FILE_TRANSFER_START.equals(bufferedReader.readLine()))
 			throw new IOException("Start acknowledgement not received");
 		
@@ -168,6 +190,11 @@ public class Client implements Runnable{
 		String transferParams = String.format("%d, %s", fileBytes.length, fileName);
 		printWriter.println(transferParams);
 		printWriter.flush();
+		try{
+			Thread.sleep(20);
+		}catch(Exception e){
+
+		}
 		
 		System.out.println("Sending with parameters: " + transferParams);
 		
@@ -199,10 +226,20 @@ public class Client implements Runnable{
 			while(true){
 				bufferedOutputStream.write(block);
 				bufferedOutputStream.flush();
+				try{
+					Thread.sleep(20);
+				}catch(Exception e){
+
+				}
 				if (String.valueOf(crc32Value).equals(bufferedReader.readLine())){
 					System.out.println(" Response: OK");
 					printWriter.println(OK);
 					printWriter.flush();
+					try{
+						Thread.sleep(20);
+					}catch(Exception e){
+
+					}
 					try{
 						Thread.sleep(20);
 					}catch (InterruptedException e){}
@@ -211,6 +248,11 @@ public class Client implements Runnable{
 					System.out.println(" Response: FAIL");
 					printWriter.println(FAIL);
 					printWriter.flush();
+					try{
+						Thread.sleep(20);
+					}catch(Exception e){
+
+					}
 					continue;					
 				}
 			}
@@ -242,6 +284,11 @@ public class Client implements Runnable{
 		
 		printWriter.println(Client.FILE_TRANSFER_START);
 		printWriter.flush();
+		try{
+			Thread.sleep(20);
+		}catch(Exception e){
+
+		}
 		
 		String transferParameters = bufferedReader.readLine();
 		
@@ -250,6 +297,11 @@ public class Client implements Runnable{
 		
 		printWriter.println(acknowledgementParams);
 		printWriter.flush();
+		try{
+			Thread.sleep(20);
+		}catch(Exception e){
+
+		}
 		
 		File outputFile = new File(Client.CLIENT_LOCATION_DIR + destinationName);
 		if(outputFile.exists())
@@ -277,6 +329,11 @@ public class Client implements Runnable{
 			long crc32Value = crc32.getValue();
 			printWriter.println(crc32Value);
 			printWriter.flush();
+			try{
+				Thread.sleep(20);
+			}catch(Exception e){
+
+			}
 			System.out.print("CRC32 value sent: " + crc32Value);
 			
 			String response = bufferedReader.readLine();
@@ -316,6 +373,11 @@ public class Client implements Runnable{
 		
 		printWriter.println(SESSION_KEY_START);
 		printWriter.flush();
+		try{
+			Thread.sleep(20);
+		}catch(Exception e){
+
+		}
 		if (!SESSION_KEY_START.equals(bufferedReader.readLine()))
 			throw new IOException("Start acknowledgement not received");
 		
@@ -324,6 +386,11 @@ public class Client implements Runnable{
 		String transferParams = String.format("%d", keyBytes.length);
 		printWriter.println(transferParams);
 		printWriter.flush();
+		try{
+			Thread.sleep(20);
+		}catch(Exception e){
+
+		}
 		
 		System.out.println("Sending with parameters: " + transferParams);
 		
@@ -359,9 +426,7 @@ public class Client implements Runnable{
 					System.out.println(" Response: OK");
 					printWriter.println(OK);
 					printWriter.flush();
-					try{
-						Thread.sleep(20);
-					}catch (InterruptedException e){}
+					try{Thread.sleep(20);}catch (InterruptedException e){}
 					break;
 				}else{
 					System.out.println(" Response: FAIL");

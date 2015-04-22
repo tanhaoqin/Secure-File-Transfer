@@ -169,7 +169,7 @@ class ClientHandler implements Runnable{
 		
 		String encryptedRequest = Server.cryptoManager.encryptWithPrivateKey(request);
 		printWriter.println(encryptedRequest);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch (InterruptedException e){}
 		
 		String requestTheSequel;
 		while(!(requestTheSequel = bufferedReader.readLine())
@@ -204,7 +204,7 @@ class ClientHandler implements Runnable{
 				BufferedReader(new InputStreamReader(socket.getInputStream()));
 		
 		printWriter.println(Client.FILE_TRANSFER_START);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch (InterruptedException e){}
 		
 		String transferParameters = bufferedReader.readLine();
 		
@@ -213,7 +213,7 @@ class ClientHandler implements Runnable{
 		String acknowledgementParams = String.format("%d, %s", fileLength, fileName);
 		
 		printWriter.println(acknowledgementParams);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch (InterruptedException e){}
 		
 		File outputFile = new File(Client.SERVER_FILE_PATH + fileName);
 		if(outputFile.exists())
@@ -240,7 +240,7 @@ class ClientHandler implements Runnable{
 			
 			long crc32Value = crc32.getValue();
 			printWriter.println(crc32Value);
-			printWriter.flush();
+			printWriter.flush();try{Thread.sleep(20);}catch (InterruptedException e){}
 			System.out.print("CRC32 value sent: " + crc32Value);
 			
 			String response = bufferedReader.readLine();
@@ -281,7 +281,7 @@ class ClientHandler implements Runnable{
 				BufferedReader(new InputStreamReader(socket.getInputStream()));
 		
 		printWriter.println(Client.FILE_TRANSFER_START);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch (InterruptedException e){}
 		if (!Client.FILE_TRANSFER_START.equals(bufferedReader.readLine()))
 			throw new IOException("Start acknowledgement not received");
 		
@@ -289,7 +289,7 @@ class ClientHandler implements Runnable{
 		
 		String transferParams = String.valueOf(fileBytes.length);
 		printWriter.println(transferParams);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch (InterruptedException e){}
 		
 		System.out.println("Sending with parameters: " + transferParams);
 		
@@ -320,11 +320,11 @@ class ClientHandler implements Runnable{
 			System.out.print("CRC32 value: " + crc32Value);
 			while(true){
 				bufferedOutputStream.write(block);
-				bufferedOutputStream.flush();
+				bufferedOutputStream.flush();try{Thread.sleep(20);}catch (InterruptedException e){}
 				if (String.valueOf(crc32Value).equals(bufferedReader.readLine())){
 					System.out.println(" Response: OK");
 					printWriter.println(Client.OK);
-					printWriter.flush();
+					printWriter.flush();try{Thread.sleep(20);}catch (InterruptedException e){}
 					try{
 						Thread.sleep(20);
 					}catch (InterruptedException e){}
@@ -332,7 +332,7 @@ class ClientHandler implements Runnable{
 				}else{
 					System.out.println(" Response: FAIL");
 					printWriter.println(Client.FAIL);
-					printWriter.flush();
+					printWriter.flush();try{Thread.sleep(20);}catch (InterruptedException e){}
 					continue;					
 				}
 			}
@@ -378,7 +378,7 @@ class ClientHandler implements Runnable{
 				BufferedReader(new InputStreamReader(socket.getInputStream()));
 		
 		printWriter.println(Client.SESSION_KEY_START);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch (InterruptedException e){}
 		
 		String transferParameters = bufferedReader.readLine();
 		
@@ -386,7 +386,7 @@ class ClientHandler implements Runnable{
 		String acknowledgementParams = String.format("%d", fileLength);
 		
 		printWriter.println(acknowledgementParams);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch (InterruptedException e){}
 		
 		File outputFile = new File(Server.DESTINATION_FILE_DIR + "//sessionKey");
 		if(outputFile.exists())
@@ -413,7 +413,7 @@ class ClientHandler implements Runnable{
 			
 			long crc32Value = crc32.getValue();
 			printWriter.println(crc32Value);
-			printWriter.flush();
+			printWriter.flush();try{Thread.sleep(20);}catch (InterruptedException e){}
 			System.out.print("CRC32 value sent: " + crc32Value);
 			
 			String response = bufferedReader.readLine();

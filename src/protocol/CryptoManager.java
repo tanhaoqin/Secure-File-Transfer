@@ -44,14 +44,16 @@ public class CryptoManager {
 	public void setPrivateKey(File privateKeyFile) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException{
 		FileInputStream privateKeyFileStream = new FileInputStream(privateKeyFile);
 		byte[] privateKeyArray = new byte[privateKeyFileStream.available()];
+		
 		privateKeyFileStream.read(privateKeyArray);
 		privateKeyFileStream.close();
 		
 		PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyArray);
-
+		
 		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
 		
 		privateKey = keyFactory.generatePrivate(privateKeySpec);
+
 	}
 	
 	public void setPublicKey(File publicKeyFile) throws NoSuchAlgorithmException, IOException, InvalidKeySpecException{
@@ -236,11 +238,7 @@ public class CryptoManager {
 		secretKeyFileStream.close();
 		
 		return new SecretKeySpec(secretKeyByteArray, 0, secretKeyByteArray.length, "AES");
-	}
 	
-	public byte[][] splitBytes(byte[]){
-		
-	}
-	
+	}	
 }
 
