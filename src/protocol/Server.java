@@ -31,6 +31,7 @@ import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
 public class Server {
 
+	public static final String DESTINATION_FILE_DIR = "client/";
 	public static CryptoManager cryptoManager;
 	private static ServerSocket serverSocket;
 
@@ -149,15 +150,15 @@ class ClientHandler implements Runnable{
 			if(request.equals(Client.FILE_TRANSFER_START)){
 				receiveFile(socket);
 			}else if(request.contains(Client.CERTIFICATE_REQUEST)){
-				serverAuthenticate(socket, request);
+				serverAuthenticate(request);
 			}
 
-		}catch (IOException e){
+		}catch (IOException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | NoSuchPaddingException e){
 			e.printStackTrace();
 		}
 	}
 	
-	public boolean serverAuthenticate(Socket socket, String request) throws IOException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException{
+	public boolean serverAuthenticate(String request) throws IOException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException{
 		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
 
 		BufferedOutputStream bufferedOutputStream = new 
@@ -387,7 +388,7 @@ class ClientHandler implements Runnable{
 		printWriter.println(acknowledgementParams);
 		printWriter.flush();
 		
-		File outputFile = new File(Client.DESTINATION_FILE_PATH + "//sessionKey");
+		File outputFile = new File(Server.DESTINATION_FILE_DIR + "//sessionKey");
 		if(outputFile.exists())
 			outputFile.delete();
 		

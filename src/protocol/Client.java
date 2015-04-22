@@ -82,11 +82,8 @@ public class Client implements Runnable{
 		return fileBytes;
 	}
 
-<<<<<<< HEAD
-	public boolean clientAuthenticate() throws IOException, CertificateException{
-=======
-	public boolean clientAuthenticate(Socket socket) throws IOException, CertificateException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException{
->>>>>>> origin/master
+
+	public boolean clientAuthenticate() throws IOException, CertificateException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException{
 		String nonce, encryptedResponse;
 		
 		socket.setSoTimeout(TIME_OUT_LENGTH);
@@ -125,7 +122,7 @@ public class Client implements Runnable{
 		bufferedOutputStream.close();
 		bufferedReader.close();
 		printWriter.close();
-		
+		return returnValue;
 	}
 	
 	/**
