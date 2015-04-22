@@ -94,7 +94,7 @@ public class Client {
 		return fileBytes;
 	}
 
-	public true clientAuthenticate(Socket socket) throws IOException{
+	public void clientAuthenticate(Socket socket) throws IOException, CertificateException{
 		String nonce, encryptedResponse;
 		
 		socket.setSoTimeout(TIME_OUT_LENGTH);
@@ -118,8 +118,7 @@ public class Client {
 			receiveCert(socket, CERTIFICATE_NAME);
 		}
 		
-		//TODO: extract public key from clients/secStore.crt and decrypt
-		
+		cryptoManager.addPublicKeyFromCert(new File(CLIENT_LOCATION_DIR+CERTIFICATE_NAME));
 	}
 	
 	/**
