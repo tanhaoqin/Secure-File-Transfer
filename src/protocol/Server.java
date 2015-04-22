@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -19,6 +20,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.zip.CRC32;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -153,7 +157,7 @@ class ClientHandler implements Runnable{
 		}
 	}
 	
-	public boolean serverAuthenticate(Socket socket, String request) throws IOException{
+	public boolean serverAuthenticate(Socket socket, String request) throws IOException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException{
 		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
 
 		BufferedOutputStream bufferedOutputStream = new 
@@ -162,8 +166,7 @@ class ClientHandler implements Runnable{
 		BufferedReader bufferedReader = new 
 				BufferedReader(new InputStreamReader(socket.getInputStream()));
 		
-		//TODO: dod encryption on request and send it back
-		String encryptedRequest = doEncryptionHere(request);
+		String encryptedRequest = Server.cryptoManager.encryptWithPrivateKey(request);
 		printWriter.println(encryptedRequest);
 		printWriter.flush();
 		

@@ -150,6 +150,14 @@ public class CryptoManager {
         return new String(finalBytes);
 	}
 	
+	public String encryptWithPrivateKey(String string) throws IOException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException{		
+		byte[] byteArray = string.getBytes();
+		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
+		rsaCipher.init(Cipher.ENCRYPT_MODE, privateKey);
+        byte[] finalBytes = rsaCipher.doFinal(byteArray);
+        return new String(finalBytes);
+	}
+	
 	public void generateAES() throws NoSuchAlgorithmException{
 		KeyGenerator keyGen = KeyGenerator.getInstance("AES");
         aesKey = keyGen.generateKey();

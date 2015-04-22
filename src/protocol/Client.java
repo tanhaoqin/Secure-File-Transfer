@@ -94,7 +94,7 @@ public class Client {
 		return fileBytes;
 	}
 
-	public boolean clientAuthenticate(Socket socket) throws IOException, CertificateException{
+	public boolean clientAuthenticate(Socket socket) throws IOException, CertificateException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException{
 		String nonce, encryptedResponse;
 		
 		socket.setSoTimeout(TIME_OUT_LENGTH);
@@ -120,7 +120,7 @@ public class Client {
 		
 		cryptoManager.addPublicKeyFromCert(new File(CLIENT_LOCATION_DIR+CERTIFICATE_NAME));
 		boolean returnValue;
-		if(encryptedResponse.equals(cryptoManager.decryptWithPublicKey(encryptedResponse)){
+		if(encryptedResponse.equals(cryptoManager.decryptWithPublicKey(encryptedResponse))){
 			printWriter.println(OK);
 			printWriter.flush();
 			returnValue = true;
