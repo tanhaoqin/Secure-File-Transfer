@@ -1,5 +1,6 @@
 package protocol;
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -136,9 +137,13 @@ class ClientHandler implements Runnable{
 		try{
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			out = new PrintWriter(socket.getOutputStream());
-			if(in.readLine().equals(Client.FILE_TRANSFER_START)){
+			String request = in.readLine();
+			if(request.equals(Client.FILE_TRANSFER_START)){
 				receiveFile(socket);
+			}else if(request.equals(Client.CERTIFICATE_REQUEST)){
+				serverAuthenticate(socket);
 			}
+
 		}catch (IOException e){
 			e.printStackTrace();
 		}
@@ -170,7 +175,7 @@ class ClientHandler implements Runnable{
 		printWriter.println(acknowledgementParams);
 		printWriter.flush();
 		
-		File outputFile = new File(Client.DESTINATION_FILE_PATH + fileName);
+		File outputFile = new File(Client.SERVER_FILE_PATH + fileName);
 		if(outputFile.exists())
 			outputFile.delete();
 		
@@ -223,6 +228,90 @@ class ClientHandler implements Runnable{
 		}
 			
 	}
+	
+	public void uploadFile(byte[] fileBytes, Socket socket, String fileName) throws IOException{
+		
+		socket.setSoTimeout(Client.TIME_OUT_LENGTH);
+		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
+
+		BufferedOutputStream bufferedOutputStream = new 
+				BufferedOutputStream(socket.getOutputStream());
+		
+		BufferedReader bufferedReader = new 
+				BufferedReader(new InputStreamReader(socket.getInputStream()));
+		
+		printWriter.println(Client.FILE_TRANSFER_START);
+		printWriter.flush();
+		if (!Client.FILE_TRANSFER_START.equals(bufferedReader.readLine()))
+			throw new IOException("Start acknowledgement not received");
+		
+		System.out.println("Starting the transfer");
+		
+		String transferParams = String.format("%d, %s", fileBytes.length, fileName);
+		printWriter.println(transferParams);
+		printWriter.flush();
+		
+		System.out.println("Sending with parameters: " + transferParams);
+		
+		if(!transferParams.equals(bufferedReader.readLine()))
+			throw new IOException("Parameter acknowledgement not received");
+		
+		int i = 0, initialI = 0;
+		byte[] block;
+		CRC32 crc32 = new CRC32();
+		
+		while(i < fileBytes.length){
+			initialI = i;
+
+			int blockLength = i + 1000 >= fileBytes.length ? 
+					fileBytes.length - i : 1000;
+			
+			block = new byte[blockLength];
+			
+			System.out.format("Bytes %d to %d ", initialI, 
+					initialI + blockLength);
+			
+			for(; i < initialI + blockLength; i++){
+				block[i - initialI] = fileBytes[i]; //writes the byte to the block first
+			}
+			
+			crc32.update(block);
+			long crc32Value = crc32.getValue();
+			System.out.print("CRC32 value: " + crc32Value);
+			while(true){
+				bufferedOutputStream.write(block);
+				bufferedOutputStream.flush();
+				if (String.valueOf(crc32Value).equals(bufferedReader.readLine())){
+					System.out.println(" Response: OK");
+					printWriter.println(Client.OK);
+					printWriter.flush();
+					try{
+						Thread.sleep(20);
+					}catch (InterruptedException e){}
+					break;
+				}else{
+					System.out.println(" Response: FAIL");
+					printWriter.println(Client.FAIL);
+					printWriter.flush();
+					continue;					
+				}
+			}
+		}
+		printWriter.println(Client.FILE_TRANSFER_END);
+		
+		try{
+			Thread.sleep(100);}
+		catch (InterruptedException e){
+			
+		}
+		finally{
+			socket.close();
+			printWriter.close();
+			bufferedOutputStream.close();
+			bufferedReader.close();
+		}
+	}
+	
 	/**
 	 * Obtains the session key from the client. Implements the entire 
 	 * session key handshake with the client. Protocol is as follows:

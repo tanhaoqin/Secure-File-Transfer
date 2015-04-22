@@ -37,15 +37,17 @@ public class Client {
 	public static final String LOCALHOST = "127.0.0.1";
 	public static final String FILE_TRANSFER_START = "FILE_TRANSFER_START";
 	public static final String FILE_TRANSFER_END = "FILE_TRANSFER_END";
-	public static final String FILE_LOCATION_DIR = "tests/";
+	public static final String CLIENT_LOCATION_DIR = "client/";
 	public static final String TRANSFER_FILE_NAME = "Coffee.jpg";
-	public static final String TRANSFER_FILE_PATH = FILE_LOCATION_DIR + TRANSFER_FILE_NAME;
-	public static final String DESTINATION_FILE_PATH = "tests/TRANSFERRED";
-	public static final int TIME_OUT_LENGTH = 10000;
+	public static final String TRANSFER_FILE_PATH = CLIENT_LOCATION_DIR + TRANSFER_FILE_NAME;
+	public static final String SERVER_FILE_PATH = "server/TRANSFERRED";
 	public static final String SESSION_KEY_START = "SESSION_KEY_START";
 	public static final String SESSION_KEY_END = "SESSION_KEY_END";
-
-	public final static String CERTIFICATE_REQUEST = "Hello SecStore, please prove your identity!";
+	public static final String CERTIFICATE_REQUEST = "Hello SecStore, please prove your identity!";
+	public static final String CERTIFICATE_REQUEST_2 = "Give me your certificate signed by CA";
+	public static final String CERTIFICATE_NAME = "secStore.crt";
+	
+	public static final int TIME_OUT_LENGTH = 10000;
 	
 	private Socket socket;
 	private InputStream in;
@@ -92,6 +94,33 @@ public class Client {
 		return fileBytes;
 	}
 
+	public true clientAuthenticate(Socket socket) throws IOException{
+		String nonce, encryptedResponse;
+		
+		socket.setSoTimeout(TIME_OUT_LENGTH);
+		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
+
+		BufferedOutputStream bufferedOutputStream = new 
+				BufferedOutputStream(socket.getOutputStream());
+		
+		BufferedReader bufferedReader = new 
+				BufferedReader(new InputStreamReader(socket.getInputStream()));
+		
+		nonce = String.valueOf(System.currentTimeMillis());
+		
+		printWriter.println(CERTIFICATE_REQUEST + nonce);
+		printWriter.flush();
+		
+		encryptedResponse = bufferedReader.readLine();
+		
+		printWriter.println(CERTIFICATE_REQUEST_2);
+		if(bufferedReader.readLine().toString().equals(FILE_TRANSFER_START)){
+			clientReceiveFile(socket, CERTIFICATE_NAME);
+		}
+		
+		//TODO: extract public key from clients/secStore.crt and decrypt
+		
+	}
 	
 	/**
 	 * Uploads a given file using the given parameters according to the following protocol:
@@ -198,7 +227,81 @@ public class Client {
 		}
 	}
 
+	public void clientReceiveFile(Socket socket, String destinationName) throws IOException{
 
+		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
+
+		BufferedInputStream bufferedInputStream = new 
+				BufferedInputStream(socket.getInputStream());
+		
+		BufferedReader bufferedReader = new 
+				BufferedReader(new InputStreamReader(socket.getInputStream()));
+		
+		printWriter.println(Client.FILE_TRANSFER_START);
+		printWriter.flush();
+		
+		String transferParameters = bufferedReader.readLine();
+		
+		int fileLength = Integer.parseInt(transferParameters.split(",", 2)[0].trim());
+		String fileName= transferParameters.split(",", 2)[1].trim();
+		String acknowledgementParams = String.format("%d, %s", fileLength, fileName);
+		
+		printWriter.println(acknowledgementParams);
+		printWriter.flush();
+		
+		File outputFile = new File(Client.CLIENT_LOCATION_DIR + destinationName);
+		if(outputFile.exists())
+			outputFile.delete();
+		
+		System.out.println("Receiving with parameters: " + acknowledgementParams);
+		
+		int totalBytesTransferred = 0, numBytesRead;
+		
+		CRC32 crc32 = new CRC32();
+		
+		while(totalBytesTransferred < fileLength){
+			
+			int blockSize = fileLength - totalBytesTransferred < 1000 
+					? fileLength - totalBytesTransferred : 1000;
+
+			System.out.format("Receiving bytes: %d to %d ",
+					totalBytesTransferred, totalBytesTransferred + blockSize);
+			
+			byte[] block = new byte[blockSize];
+			
+			numBytesRead = bufferedInputStream.read(block);
+			crc32.update(block);
+			
+			long crc32Value = crc32.getValue();
+			printWriter.println(crc32Value);
+			printWriter.flush();
+			System.out.print("CRC32 value sent: " + crc32Value);
+			
+			String response = bufferedReader.readLine();
+			System.out.println(" client: " + response);
+			if(Client.OK.equals(response)){
+				CryptoManager.appendBytesToFile(block, outputFile);
+				totalBytesTransferred += numBytesRead;
+			}
+			
+			else if (Client.FAIL.equals(response))
+				continue;
+			
+			else {
+				throw new IOException("CRC32 something failed");
+			}
+		}
+		
+		String ended = bufferedReader.readLine();
+		printWriter.close();
+		bufferedReader.close();
+		bufferedInputStream.close();
+		
+		if(!Client.FILE_TRANSFER_END.equals(ended)){
+			throw new IOException("Client did not exit transfer properly");
+		}
+			
+	}
 	public void sendSessionKey(byte[] keyBytes, Socket socket) throws IOException{
 		socket.setSoTimeout(TIME_OUT_LENGTH);
 		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
