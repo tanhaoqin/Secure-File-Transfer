@@ -2,17 +2,14 @@ package protocol;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -79,6 +76,7 @@ public class CryptoManager {
 		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
 		rsaCipher.init(Cipher.ENCRYPT_MODE, privateKey);
         byte[] finalBytes = rsaCipher.doFinal(byteArray);
+        bufferedInputStream.close();
         return finalBytes;
 	}
 	
@@ -101,6 +99,7 @@ public class CryptoManager {
 		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
 		rsaCipher.init(Cipher.DECRYPT_MODE, publicKey);
         byte[] finalBytes = rsaCipher.doFinal(byteArray);
+        bufferedInputStream.close();
         return finalBytes;
 	}
 	
@@ -132,6 +131,7 @@ public class CryptoManager {
 		Cipher aesCipher = Cipher.getInstance(AES_ENCRYPTION);
 		aesCipher.init(Cipher.ENCRYPT_MODE, key);
         byte[] finalBytes = aesCipher.doFinal(byteArray);
+        bufferedInputStream.close();
         return finalBytes;
 	}
 	
@@ -154,6 +154,7 @@ public class CryptoManager {
 		Cipher aesCipher = Cipher.getInstance(AES_ENCRYPTION);
 		aesCipher.init(Cipher.DECRYPT_MODE, key);
         byte[] finalBytes = aesCipher.doFinal(byteArray);
+        bufferedInputStream.close();
         return finalBytes;
 	}
 	
