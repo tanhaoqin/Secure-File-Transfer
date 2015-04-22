@@ -23,25 +23,34 @@ public class CryptoManagerTest {
 		//Testing RSA features
 		CryptoManager cryptoManager = new CryptoManager();
 		cryptoManager.setPrivateKey(new File("certs//privateServer.der"));
-		cryptoManager.addPublicKeyFromCert((new File("certs//server.crt")));
+		cryptoManager.addPublicKeyFromCert((new File("server//server.crt")));
 		
-		byte[] encryptedRSATestFile = cryptoManager.encryptWithPrivateKey(new File("tests//haiku.txt"));
-		cryptoManager.writeBytesToFile(encryptedRSATestFile, new File("tests//haikuEncrypted.txt"));
+//		byte[] encryptedRSATestFile = cryptoManager.encryptWithPrivateKey(new File("tests//haiku.txt"));
+//		cryptoManager.appendBytesToFile(encryptedRSATestFile, new File("tests//haikuEncrypted.txt"));
+//		
+//		byte[] decryptedRSATestFile = cryptoManager.decryptWithPublicKey(new File("tests//haikuEncrypted.txt"));
+//		cryptoManager.appendBytesToFile(decryptedRSATestFile, new File("tests//haikuDecrypted.txt"));
+//		
+//		cryptoManager.generateAES();
+//		SecretKey sessionKey = cryptoManager.getSessionKey();
+//		
+//		//Testing AES features
+//		byte[] encryptedAESTestFile = cryptoManager.encryptWithKey(
+//				new File("tests//haiku.txt"), sessionKey);
+//		cryptoManager.appendBytesToFile(encryptedAESTestFile, new File("tests//haikuEncryptedAES.txt"));
+//		
+//		byte[] decryptedAESTestFile = cryptoManager.decryptWithKey(
+//				new File("tests//haikuEncryptedAES.txt"), sessionKey);
+//		cryptoManager.appendBytesToFile(decryptedAESTestFile, new File("tests//haikuDecryptedAES.txt"));
 		
-		byte[] decryptedRSATestFile = cryptoManager.decryptWithPublicKey(new File("tests//haikuEncrypted.txt"));
-		cryptoManager.writeBytesToFile(decryptedRSATestFile, new File("tests//haikuDecrypted.txt"));
+		String testString = "Hello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello WorldHello World";
+		String encryptedRSATestString = cryptoManager.encryptWithPrivateKey(testString);
 		
-		cryptoManager.generateAES();
-		SecretKey sessionKey = cryptoManager.getSessionKey();
+		String decryptedRSATestString = cryptoManager.decryptWithPublicKey(encryptedRSATestString);
 		
-		//Testing AES features
-		byte[] encryptedAESTestFile = cryptoManager.encryptWithKey(
-				new File("tests//haiku.txt"), sessionKey);
-		cryptoManager.writeBytesToFile(encryptedAESTestFile, new File("tests//haikuEncryptedAES.txt"));
-		
-		byte[] decryptedAESTestFile = cryptoManager.decryptWithKey(
-				new File("tests//haikuEncryptedAES.txt"), sessionKey);
-		cryptoManager.writeBytesToFile(decryptedAESTestFile, new File("tests//haikuDecryptedAES.txt"));
+		System.out.println(decryptedRSATestString);
+		System.out.println(testString.length());
+		System.out.println(decryptedRSATestString.length());
 	}
 	
 }

@@ -19,6 +19,7 @@ import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -84,7 +85,14 @@ public class CryptoManager {
 		
 		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
 		rsaCipher.init(Cipher.ENCRYPT_MODE, privateKey);
-        byte[] finalBytes = rsaCipher.doFinal(byteArray);
+		
+		ArrayList<byte[]> byteBlocks = splitBytes(byteArray);		
+		byte[] finalBytes = new byte[byteArray.length];
+		for(int i = 0; i< byteBlocks.size(); i++){
+			System.arraycopy(byteBlocks.get(i), 0, finalBytes, i*128, byteBlocks.get(i).length);
+		}
+		
+		
         bufferedInputStream.close();
         return finalBytes;
 	}
@@ -107,7 +115,13 @@ public class CryptoManager {
 		
 		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
 		rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey);
-        byte[] finalBytes = rsaCipher.doFinal(byteArray);
+		
+		ArrayList<byte[]> byteBlocks = splitBytes(byteArray);		
+		byte[] finalBytes = new byte[byteArray.length];
+		for(int i = 0; i< byteBlocks.size(); i++){
+			System.arraycopy(byteBlocks.get(i), 0, finalBytes, i*128, byteBlocks.get(i).length);
+		}
+		
         bufferedInputStream.close();
         return finalBytes;
 	}
@@ -115,7 +129,13 @@ public class CryptoManager {
 	public byte[] encryptWithPublicKey(byte[] byteArray) throws IOException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException{
 		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
 		rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey);
-        byte[] finalBytes = rsaCipher.doFinal(byteArray);
+        
+		ArrayList<byte[]> byteBlocks = splitBytes(byteArray);		
+		byte[] finalBytes = new byte[byteArray.length];
+		for(int i = 0; i< byteBlocks.size(); i++){
+			System.arraycopy(byteBlocks.get(i), 0, finalBytes, i*128, byteBlocks.get(i).length);
+		}
+		
         return finalBytes;
 	}
 	
@@ -137,16 +157,31 @@ public class CryptoManager {
 		
 		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
 		rsaCipher.init(Cipher.DECRYPT_MODE, publicKey);
-        byte[] finalBytes = rsaCipher.doFinal(byteArray);
+		
+		ArrayList<byte[]> byteBlocks = splitBytes(byteArray);		
+		byte[] finalBytes = new byte[byteArray.length];
+		for(int i = 0; i< byteBlocks.size(); i++){
+			System.arraycopy(byteBlocks.get(i), 0, finalBytes, i*128, byteBlocks.get(i).length);
+		}
+		
         bufferedInputStream.close();
         return finalBytes;
 	}
 	
 	public String decryptWithPublicKey(String string) throws IOException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException{		
 		byte[] byteArray = string.getBytes();
+
+
+
 		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
 		rsaCipher.init(Cipher.DECRYPT_MODE, publicKey);
-        byte[] finalBytes = rsaCipher.doFinal(byteArray);
+		
+		ArrayList<byte[]> byteBlocks = splitBytes(byteArray);		
+		byte[] finalBytes = new byte[byteArray.length];
+		for(int i = 0; i< byteBlocks.size(); i++){
+			System.arraycopy(byteBlocks.get(i), 0, finalBytes, i*128, byteBlocks.get(i).length);
+		}
+		
         return new String(finalBytes);
 	}
 	
@@ -154,7 +189,13 @@ public class CryptoManager {
 		byte[] byteArray = string.getBytes();
 		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
 		rsaCipher.init(Cipher.ENCRYPT_MODE, privateKey);
-        byte[] finalBytes = rsaCipher.doFinal(byteArray);
+		
+		ArrayList<byte[]> byteBlocks = splitBytes(byteArray);		
+		byte[] finalBytes = new byte[byteArray.length];
+		for(int i = 0; i< byteBlocks.size(); i++){
+			System.arraycopy(byteBlocks.get(i), 0, finalBytes, i*128, byteBlocks.get(i).length);
+		}
+		
         return new String(finalBytes);
 	}
 	
@@ -185,7 +226,13 @@ public class CryptoManager {
 		
 		Cipher aesCipher = Cipher.getInstance(AES_ENCRYPTION);
 		aesCipher.init(Cipher.ENCRYPT_MODE, key);
-        byte[] finalBytes = aesCipher.doFinal(byteArray);
+
+		ArrayList<byte[]> byteBlocks = splitBytes(byteArray);		
+		byte[] finalBytes = new byte[byteArray.length];
+		for(int i = 0; i< byteBlocks.size(); i++){
+			System.arraycopy(byteBlocks.get(i), 0, finalBytes, i*128, byteBlocks.get(i).length);
+		}
+		
         bufferedInputStream.close();
         return finalBytes;
 	}
@@ -208,7 +255,13 @@ public class CryptoManager {
 		
 		Cipher aesCipher = Cipher.getInstance(AES_ENCRYPTION);
 		aesCipher.init(Cipher.DECRYPT_MODE, key);
-        byte[] finalBytes = aesCipher.doFinal(byteArray);
+		
+		ArrayList<byte[]> byteBlocks = splitBytes(byteArray);		
+		byte[] finalBytes = new byte[byteArray.length];
+		for(int i = 0; i< byteBlocks.size(); i++){
+			System.arraycopy(byteBlocks.get(i), 0, finalBytes, i*128, byteBlocks.get(i).length);
+		}
+		
         bufferedInputStream.close();
         return finalBytes;
 	}
@@ -238,8 +291,23 @@ public class CryptoManager {
 		return new SecretKeySpec(secretKeyByteArray, 0, secretKeyByteArray.length, "AES");
 	}
 	
-	public byte[][] splitBytes(byte[]){
-		
+	public ArrayList<byte[]> splitBytes(byte[] bytes){
+		int noOfBlocks = bytes.length/128 + 1;
+		ArrayList<byte[]> bytesArray = new ArrayList<byte[]>();
+		for(int i = 0; i<noOfBlocks; i++){
+			int start = (i)*128;
+			int end = (i+1)*128 - 1;
+			int blockSize = 128;
+			if(end>bytes.length)
+				blockSize = bytes.length - i*blockSize;
+			byte[] byteBlock = new byte[blockSize];
+			for(int j = 0; j < blockSize - 1; j++){
+				if(start+j<bytes.length)
+					byteBlock[j] = bytes[start+j];
+			}
+			bytesArray.add(byteBlock);
+		}
+		return bytesArray;
 	}
 	
 }
