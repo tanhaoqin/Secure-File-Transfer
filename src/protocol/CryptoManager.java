@@ -168,6 +168,36 @@ public class CryptoManager {
         return finalBytes;
 	}
 	
+	public byte[] decryptWithPrivateKey(File file) throws IOException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException{
+		BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
+
+		int length = (int) file.length();
+		int count = 0;
+		
+		byte[] byteArray = new byte[length];
+
+		int a = 0;
+		while(a != -1 && count < length){
+			a = bufferedInputStream.read();
+			System.out.println(a);
+			byteArray[count] = (byte) a;
+			count++;
+		}
+		
+		Cipher rsaCipher = Cipher.getInstance(RSA_ENCRYPTION);
+		rsaCipher.init(Cipher.DECRYPT_MODE, privateKey);
+		
+		ArrayList<byte[]> byteBlocks = splitBytes(byteArray);		
+		byte[] finalBytes = new byte[byteArray.length];
+		for(int i = 0; i< byteBlocks.size(); i++){
+			System.arraycopy(byteBlocks.get(i), 0, finalBytes, i*128, byteBlocks.get(i).length);
+		}
+		
+        bufferedInputStream.close();
+        return finalBytes;
+	}
+	
+	
 	public String decryptWithPublicKey(String string) throws IOException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException{		
 		byte[] byteArray = string.getBytes();
 

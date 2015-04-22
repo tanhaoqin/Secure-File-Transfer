@@ -34,32 +34,34 @@ public class Server {
 	public static final String DESTINATION_FILE_DIR = "client/";
 	public static CryptoManager cryptoManager;
 	private static ServerSocket serverSocket;
+	public static SecretKey sessionKey;
 
-	public static void main(String[] args) throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
+	public static void main(String[] args) throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, InterruptedException {
 		cryptoManager = new CryptoManager();
 		cryptoManager.setPrivateKey(new File("certs//privateServer.der"));
 		
 		serverSocket = new ServerSocket(4321);
-		new Thread(new Runnable() {
-			
-			@Override
-			public void run() {
-/*				while(true){
-					try {
-						Socket socket = serverSocket.accept();
-						new Thread(new ClientHandler(socket)).start();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}*/
-				try{
-					Socket socket = serverSocket.accept();
-					new Thread(new ClientHandler(socket)).start();
-				}catch(IOException e){
-					e.printStackTrace();
+		Thread handleThread = new Thread(new ClientHandler(serverSocket.accept()));
+		handleThread.start();
+		handleThread.join();
+		System.out.println("hello");
+		File folder = new File("server//received");
+		System.out.println(folder.exists());
+		try{
+			for(File file: folder.listFiles()){
+				System.out.println(file.getName());
+				if(file.getName().contains("RSA")){
+					System.out.println("Decrypting RSA");
+					cryptoManager.appendBytesToFile(cryptoManager.decryptWithPrivateKey(file), new File("server//decrypted//"+file.getName()));
+				} else {
+					System.out.println("Decrypting AES");
+					cryptoManager.appendBytesToFile(cryptoManager.decryptWithKey(file, sessionKey), new File("server//decrypted//"+file.getName()));
 				}
 			}
-		}).start();
+		}
+		catch(Exception e){
+			
+		}
 	}
 	
 }
@@ -147,13 +149,25 @@ class ClientHandler implements Runnable{
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			out = new PrintWriter(socket.getOutputStream());
 			String request = in.readLine();
-			if(request.equals(Client.FILE_TRANSFER_START)){
-				receiveFile(socket);
-			}else if(request.contains(Client.CERTIFICATE_REQUEST)){
-				serverAuthenticate(request);
+			boolean authenticated = false;
+			int receivedFiles = 0;
+			if(request.contains(Client.CERTIFICATE_REQUEST)){
+				if(serverAuthenticate(request)){
+					authenticated = true;
+				}
+				while(receivedFiles < 2){
+					request = in.readLine();
+					if(request.equals(Client.SESSION_KEY_START)){
+						acceptSessionKey();
+					}
+					if(request.equals(Client.FILE_TRANSFER_START)){
+						receiveFile(socket);
+						receivedFiles++;
+					}
+				}
 			}
 
-		}catch (IOException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | NoSuchPaddingException e){
+		}catch (IOException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeySpecException e){
 			e.printStackTrace();
 		}
 	}
@@ -169,7 +183,7 @@ class ClientHandler implements Runnable{
 		
 		String encryptedRequest = Server.cryptoManager.encryptWithPrivateKey(request);
 		printWriter.println(encryptedRequest);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 		
 		String requestTheSequel;
 		while(!(requestTheSequel = bufferedReader.readLine())
@@ -204,7 +218,7 @@ class ClientHandler implements Runnable{
 				BufferedReader(new InputStreamReader(socket.getInputStream()));
 		
 		printWriter.println(Client.FILE_TRANSFER_START);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 		
 		String transferParameters = bufferedReader.readLine();
 		
@@ -213,9 +227,9 @@ class ClientHandler implements Runnable{
 		String acknowledgementParams = String.format("%d, %s", fileLength, fileName);
 		
 		printWriter.println(acknowledgementParams);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 		
-		File outputFile = new File(Client.SERVER_FILE_PATH + fileName);
+		File outputFile = new File("server//received//" + fileName);
 		if(outputFile.exists())
 			outputFile.delete();
 		
@@ -240,7 +254,7 @@ class ClientHandler implements Runnable{
 			
 			long crc32Value = crc32.getValue();
 			printWriter.println(crc32Value);
-			printWriter.flush();
+			printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 			System.out.print("CRC32 value sent: " + crc32Value);
 			
 			String response = bufferedReader.readLine();
@@ -259,9 +273,7 @@ class ClientHandler implements Runnable{
 		}
 		
 		String ended = bufferedReader.readLine();
-		printWriter.close();
-		bufferedReader.close();
-		bufferedInputStream.close();
+
 		
 		if(!Client.FILE_TRANSFER_END.equals(ended)){
 			throw new IOException("Client did not exit transfer properly");
@@ -281,7 +293,7 @@ class ClientHandler implements Runnable{
 				BufferedReader(new InputStreamReader(socket.getInputStream()));
 		
 		printWriter.println(Client.FILE_TRANSFER_START);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 		if (!Client.FILE_TRANSFER_START.equals(bufferedReader.readLine()))
 			throw new IOException("Start acknowledgement not received");
 		
@@ -289,7 +301,7 @@ class ClientHandler implements Runnable{
 		
 		String transferParams = String.valueOf(fileBytes.length);
 		printWriter.println(transferParams);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 		
 		System.out.println("Sending with parameters: " + transferParams);
 		
@@ -320,11 +332,11 @@ class ClientHandler implements Runnable{
 			System.out.print("CRC32 value: " + crc32Value);
 			while(true){
 				bufferedOutputStream.write(block);
-				bufferedOutputStream.flush();
+				bufferedOutputStream.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 				if (String.valueOf(crc32Value).equals(bufferedReader.readLine())){
 					System.out.println(" Response: OK");
 					printWriter.println(Client.OK);
-					printWriter.flush();
+					printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 					try{
 						Thread.sleep(20);
 					}catch (InterruptedException e){}
@@ -332,7 +344,7 @@ class ClientHandler implements Runnable{
 				}else{
 					System.out.println(" Response: FAIL");
 					printWriter.println(Client.FAIL);
-					printWriter.flush();
+					printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 					continue;					
 				}
 			}
@@ -343,12 +355,6 @@ class ClientHandler implements Runnable{
 			Thread.sleep(100);}
 		catch (InterruptedException e){
 			
-		}
-		finally{
-			socket.close();
-			printWriter.close();
-			bufferedOutputStream.close();
-			bufferedReader.close();
 		}
 	}
 	
@@ -368,7 +374,7 @@ class ClientHandler implements Runnable{
 	 * @throws InvalidKeySpecException 
 	 * @throws NoSuchAlgorithmException 
 	 **/
-	public void acceptSessionKey(Socket socket) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException{
+	public void acceptSessionKey() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException{
 		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
 
 		BufferedInputStream bufferedInputStream = new 
@@ -377,16 +383,18 @@ class ClientHandler implements Runnable{
 		BufferedReader bufferedReader = new 
 				BufferedReader(new InputStreamReader(socket.getInputStream()));
 		
+		System.out.println("Accepting key");
+		
 		printWriter.println(Client.SESSION_KEY_START);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 		
 		String transferParameters = bufferedReader.readLine();
 		
-		int fileLength = Integer.parseInt(transferParameters.split(",", 2)[0].trim());
+		int fileLength = Integer.parseInt(transferParameters);
 		String acknowledgementParams = String.format("%d", fileLength);
 		
 		printWriter.println(acknowledgementParams);
-		printWriter.flush();
+		printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 		
 		File outputFile = new File(Server.DESTINATION_FILE_DIR + "//sessionKey");
 		if(outputFile.exists())
@@ -413,7 +421,7 @@ class ClientHandler implements Runnable{
 			
 			long crc32Value = crc32.getValue();
 			printWriter.println(crc32Value);
-			printWriter.flush();
+			printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 			System.out.print("CRC32 value sent: " + crc32Value);
 			
 			String response = bufferedReader.readLine();
@@ -432,15 +440,13 @@ class ClientHandler implements Runnable{
 		}
 		
 		String ended = bufferedReader.readLine();
-		printWriter.close();
-		bufferedReader.close();
-		bufferedInputStream.close();
+
 		
 		if(!Client.SESSION_KEY_END.equals(ended)){
 			throw new IOException("Client did not exit transfer properly");
 		}
 		
-		this.sessionKey = Server.cryptoManager.getAESKeyFromFile(outputFile);
+		Server.sessionKey = Server.cryptoManager.getAESKeyFromFile(outputFile);
 		
 		
 //		BufferedReader in;
