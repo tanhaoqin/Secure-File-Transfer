@@ -173,6 +173,16 @@ class ClientHandler implements Runnable{
 		
 		byte[] certBytes = Client.fileToBytes(new File(Client.SERVER_FILE_PATH + Client.CERTIFICATE_NAME));
 		uploadCert(certBytes, socket);
+		
+		String response;
+		while((response= bufferedReader.readLine())== null);
+		
+		if(response.equals(Client.OK))
+			return true;
+		else if(response.equals(Client.FAIL))
+			return false;
+		else 
+			throw new IOException("Authentication failure everywhere");
 	}
 	/**
 	 * Callback when the server receives Client.FILE_TRANSFER_START

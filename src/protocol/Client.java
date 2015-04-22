@@ -94,7 +94,7 @@ public class Client {
 		return fileBytes;
 	}
 
-	public void clientAuthenticate(Socket socket) throws IOException, CertificateException{
+	public boolean clientAuthenticate(Socket socket) throws IOException, CertificateException{
 		String nonce, encryptedResponse;
 		
 		socket.setSoTimeout(TIME_OUT_LENGTH);
@@ -119,6 +119,21 @@ public class Client {
 		}
 		
 		cryptoManager.addPublicKeyFromCert(new File(CLIENT_LOCATION_DIR+CERTIFICATE_NAME));
+		boolean returnValue;
+		if(encryptedResponse.equals(cryptoManager.decryptWithPublicKey(encryptedResponse)){
+			printWriter.println(OK);
+			printWriter.flush();
+			returnValue = true;
+		}else{
+			printWriter.println(FAIL);
+			printWriter.flush();
+			returnValue = false;			
+		}
+		
+		bufferedOutputStream.close();
+		bufferedReader.close();
+		printWriter.close();
+		
 	}
 	
 	/**
