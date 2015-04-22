@@ -317,12 +317,16 @@ public class Client {
 		if (!SESSION_KEY_START.equals(bufferedReader.readLine()))
 			throw new IOException("Start acknowledgement not received");
 		
+		System.out.println("Starting the transfer");
+		
 		String transferParams = String.format("%d", keyBytes.length);
 		printWriter.println(transferParams);
 		printWriter.flush();
 		
+		System.out.println("Sending with parameters: " + transferParams);
+		
 		if(!transferParams.equals(bufferedReader.readLine()))
-			throw new IOException("Parameter acknowledgement not received");		
+			throw new IOException("Parameter acknowledgement not received");
 		
 		int i = 0, initialI = 0;
 		byte[] block;
@@ -330,32 +334,41 @@ public class Client {
 		
 		while(i < keyBytes.length){
 			initialI = i;
-			block = new byte[i + 1000 >= keyBytes.length ? 
-					keyBytes.length - i : 1000];
+
+			int blockLength = i + 1000 >= keyBytes.length ? 
+					keyBytes.length - i : 1000;
 			
-			for(int j = initialI; i < initialI + 1000 ; i++){
-				if(i >= keyBytes.length)
-					break;
+			block = new byte[blockLength];
+			
+			System.out.format("Bytes %d to %d ", initialI, 
+					initialI + blockLength);
+			
+			for(; i < initialI + blockLength; i++){
 				block[i - initialI] = keyBytes[i]; //writes the byte to the block first
 			}
+			
 			crc32.update(block);
 			long crc32Value = crc32.getValue();
-			
+			System.out.print("CRC32 value: " + crc32Value);
 			while(true){
 				bufferedOutputStream.write(block);
 				bufferedOutputStream.flush();
 				if (String.valueOf(crc32Value).equals(bufferedReader.readLine())){
+					System.out.println(" Response: OK");
 					printWriter.println(OK);
 					printWriter.flush();
+					try{
+						Thread.sleep(20);
+					}catch (InterruptedException e){}
 					break;
 				}else{
+					System.out.println(" Response: FAIL");
 					printWriter.println(FAIL);
 					printWriter.flush();
 					continue;					
 				}
 			}
 		}
-		
 		printWriter.println(SESSION_KEY_END);
 		
 		try{
