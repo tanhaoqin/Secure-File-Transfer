@@ -2,6 +2,7 @@ package protocol;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -17,6 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.zip.CRC32;
 
+import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
@@ -68,6 +70,8 @@ class ClientHandler implements Runnable{
 	public static final String CERT_TRANSFER_END = "CERT_TRANSFER_END";
 	
 	Socket socket;
+	
+	SecretKey sessionKey;
 	
 	public ClientHandler(Socket socket) throws IOException {
 		System.out.println("Client connected");
@@ -235,10 +239,83 @@ class ClientHandler implements Runnable{
 	 * 6.	If acknoledgement is not received, server tells client to resend session key,
 	 * 		repeat from step 2.
 	 * 7.	End
+	 * @throws IOException 
+	 * @throws InvalidKeySpecException 
+	 * @throws NoSuchAlgorithmException 
 	 **/
-	public Key acceptSessionKey(Socket socket){
+	public void acceptSessionKey(Socket socket) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException{
+		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
+
+		BufferedInputStream bufferedInputStream = new 
+				BufferedInputStream(socket.getInputStream());
 		
+		BufferedReader bufferedReader = new 
+				BufferedReader(new InputStreamReader(socket.getInputStream()));
 		
+		printWriter.println(Client.SESSION_KEY_START);
+		printWriter.flush();
+		
+		String transferParameters = bufferedReader.readLine();
+		
+		int fileLength = Integer.parseInt(transferParameters.split(",", 2)[0].trim());
+		String acknowledgementParams = String.format("%d", fileLength);
+		
+		printWriter.println(acknowledgementParams);
+		printWriter.flush();
+		
+		File outputFile = new File(Client.DESTINATION_FILE_PATH + "//sessionKey");
+		if(outputFile.exists())
+			outputFile.delete();
+		
+		System.out.println("Receiving with parameters: " + acknowledgementParams);
+		
+		int totalBytesTransferred = 0, numBytesRead;
+		
+		CRC32 crc32 = new CRC32();
+		
+		while(totalBytesTransferred < fileLength){
+			
+			int blockSize = fileLength - totalBytesTransferred < 1000 
+					? fileLength - totalBytesTransferred : 1000;
+
+			System.out.format("Receiving bytes: %d to %d ",
+					totalBytesTransferred, totalBytesTransferred + blockSize);
+			
+			byte[] block = new byte[blockSize];
+			
+			numBytesRead = bufferedInputStream.read(block);
+			crc32.update(block);
+			
+			long crc32Value = crc32.getValue();
+			printWriter.println(crc32Value);
+			printWriter.flush();
+			System.out.print("CRC32 value sent: " + crc32Value);
+			
+			String response = bufferedReader.readLine();
+			System.out.println(" client: " + response);
+			if(Client.OK.equals(response)){
+				CryptoManager.appendBytesToFile(block, outputFile);
+				totalBytesTransferred += numBytesRead;
+			}
+			
+			else if (Client.FAIL.equals(response))
+				continue;
+			
+			else {
+				throw new IOException("CRC32 something failed");
+			}
+		}
+		
+		String ended = bufferedReader.readLine();
+		printWriter.close();
+		bufferedReader.close();
+		bufferedInputStream.close();
+		
+		if(!Client.SESSION_KEY_END.equals(ended)){
+			throw new IOException("Client did not exit transfer properly");
+		}
+		
+		this.sessionKey = Server.cryptoManager.getAESKeyFromFile(outputFile);
 		
 		
 //		BufferedReader in;

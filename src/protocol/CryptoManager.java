@@ -26,6 +26,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 
 public class CryptoManager {
@@ -211,5 +212,15 @@ public class CryptoManager {
 		
 		this.publicKey = certificate.getPublicKey();
 	}
+
+	public SecretKey getAESKeyFromFile(File secretKeyFile) throws NoSuchAlgorithmException, IOException, InvalidKeySpecException{
+		FileInputStream secretKeyFileStream = new FileInputStream(secretKeyFile);
+		byte[] secretKeyByteArray = new byte[secretKeyFileStream.available()];
+		secretKeyFileStream.read(secretKeyByteArray);
+		secretKeyFileStream.close();
+		
+		return new SecretKeySpec(secretKeyByteArray, 0, secretKeyByteArray.length, "AES");
+	}
 	
 }
+
