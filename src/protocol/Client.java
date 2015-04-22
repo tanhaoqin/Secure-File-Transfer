@@ -40,7 +40,7 @@ public class Client {
 	public static final String CLIENT_LOCATION_DIR = "client/";
 	public static final String TRANSFER_FILE_NAME = "Coffee.jpg";
 	public static final String TRANSFER_FILE_PATH = CLIENT_LOCATION_DIR + TRANSFER_FILE_NAME;
-	public static final String SERVER_FILE_PATH = "server/TRANSFERRED";
+	public static final String SERVER_FILE_PATH = "server/";
 	public static final String SESSION_KEY_START = "SESSION_KEY_START";
 	public static final String SESSION_KEY_END = "SESSION_KEY_END";
 	public static final String CERTIFICATE_REQUEST = "Hello SecStore, please prove your identity!";
@@ -115,7 +115,7 @@ public class Client {
 		
 		printWriter.println(CERTIFICATE_REQUEST_2);
 		if(bufferedReader.readLine().toString().equals(FILE_TRANSFER_START)){
-			clientReceiveFile(socket, CERTIFICATE_NAME);
+			receiveCert(socket, CERTIFICATE_NAME);
 		}
 		
 		//TODO: extract public key from clients/secStore.crt and decrypt
@@ -227,7 +227,7 @@ public class Client {
 		}
 	}
 
-	public void clientReceiveFile(Socket socket, String destinationName) throws IOException{
+	public void receiveCert(Socket socket, String destinationName) throws IOException{
 
 		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
 
@@ -242,9 +242,8 @@ public class Client {
 		
 		String transferParameters = bufferedReader.readLine();
 		
-		int fileLength = Integer.parseInt(transferParameters.split(",", 2)[0].trim());
-		String fileName= transferParameters.split(",", 2)[1].trim();
-		String acknowledgementParams = String.format("%d, %s", fileLength, fileName);
+		int fileLength = Integer.parseInt(transferParameters.trim());
+		String acknowledgementParams = String.valueOf(fileLength);
 		
 		printWriter.println(acknowledgementParams);
 		printWriter.flush();

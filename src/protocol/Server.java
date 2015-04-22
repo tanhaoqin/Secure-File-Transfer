@@ -144,13 +144,35 @@ class ClientHandler implements Runnable{
 			String request = in.readLine();
 			if(request.equals(Client.FILE_TRANSFER_START)){
 				receiveFile(socket);
-			}else if(request.equals(Client.CERTIFICATE_REQUEST)){
-				serverAuthenticate(socket);
+			}else if(request.contains(Client.CERTIFICATE_REQUEST)){
+				serverAuthenticate(socket, request);
 			}
 
 		}catch (IOException e){
 			e.printStackTrace();
 		}
+	}
+	
+	public boolean serverAuthenticate(Socket socket, String request) throws IOException{
+		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
+
+		BufferedOutputStream bufferedOutputStream = new 
+				BufferedOutputStream(socket.getOutputStream());
+		
+		BufferedReader bufferedReader = new 
+				BufferedReader(new InputStreamReader(socket.getInputStream()));
+		
+		//TODO: dod encryption on request and send it back
+		String encryptedRequest = doEncryptionHere(request);
+		printWriter.println(encryptedRequest);
+		printWriter.flush();
+		
+		String requestTheSequel;
+		while(!(requestTheSequel = bufferedReader.readLine())
+				.equals(Client.CERTIFICATE_REQUEST_2));
+		
+		byte[] certBytes = Client.fileToBytes(new File(Client.SERVER_FILE_PATH + Client.CERTIFICATE_NAME));
+		uploadCert(certBytes, socket);
 	}
 	/**
 	 * Callback when the server receives Client.FILE_TRANSFER_START
@@ -233,7 +255,7 @@ class ClientHandler implements Runnable{
 			
 	}
 	
-	public void uploadFile(byte[] fileBytes, Socket socket, String fileName) throws IOException{
+	public void uploadCert(byte[] fileBytes, Socket socket) throws IOException{
 		
 		socket.setSoTimeout(Client.TIME_OUT_LENGTH);
 		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
@@ -251,7 +273,7 @@ class ClientHandler implements Runnable{
 		
 		System.out.println("Starting the transfer");
 		
-		String transferParams = String.format("%d, %s", fileBytes.length, fileName);
+		String transferParams = String.valueOf(fileBytes.length);
 		printWriter.println(transferParams);
 		printWriter.flush();
 		
