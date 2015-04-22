@@ -37,19 +37,13 @@ public class Client {
 	public static final String LOCALHOST = "127.0.0.1";
 	public static final String FILE_TRANSFER_START = "FILE_TRANSFER_START";
 	public static final String FILE_TRANSFER_END = "FILE_TRANSFER_END";
-<<<<<<< HEAD
 	public static final String FILE_LOCATION_DIR = "tests/";
 	public static final String TRANSFER_FILE_NAME = "Coffee.jpg";
 	public static final String TRANSFER_FILE_PATH = FILE_LOCATION_DIR + TRANSFER_FILE_NAME;
 	public static final String DESTINATION_FILE_PATH = "tests/TRANSFERRED";
 	public static final int TIME_OUT_LENGTH = 10000;
-	
-=======
 	public static final String SESSION_KEY_START = "SESSION_KEY_START";
 	public static final String SESSION_KEY_END = "SESSION_KEY_END";
-	public static final int TIME_OUT_LENGTH = 1000;
->>>>>>> 0e23da52713a061028b6be25a227de6c4af17eb6
-	
 
 	public final static String CERTIFICATE_REQUEST = "Hello SecStore, please prove your identity!";
 	
@@ -80,13 +74,10 @@ public class Client {
 		
 		System.out.println(System.getProperty("user.dir"));
 		
-<<<<<<< HEAD
 		client.uploadFile(fileToBytes(new File(TRANSFER_FILE_PATH))
 				, new Socket(LOCALHOST, 4321), TRANSFER_FILE_NAME);
 		
 //		client.uploadFile(new File("certs//server_Tan Hao Qin.csr"));
-=======
->>>>>>> 0e23da52713a061028b6be25a227de6c4af17eb6
 		
 	}
 
@@ -207,17 +198,7 @@ public class Client {
 		}
 	}
 
-<<<<<<< HEAD
-	public void uploadRSA(File file, File publicKeyFile) throws InvalidKeyException, CertificateException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, IOException{
-		byte[] fileBytes;
-		try{
-			BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
-			fileBytes = new byte[(int) file.length()];
-			bufferedInputStream.read(fileBytes);
-		}catch (IOException e){
-			e.printStackTrace();
-			return;
-=======
+
 	public void sendSessionKey(byte[] keyBytes, Socket socket) throws IOException{
 		socket.setSoTimeout(TIME_OUT_LENGTH);
 		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
@@ -270,8 +251,6 @@ public class Client {
 					continue;					
 				}
 			}
-			
->>>>>>> 0e23da52713a061028b6be25a227de6c4af17eb6
 		}
 		
 		printWriter.println(SESSION_KEY_END);
