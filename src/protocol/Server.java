@@ -1,6 +1,7 @@
 package protocol;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -30,13 +31,19 @@ public class Server {
 			
 			@Override
 			public void run() {
-				while(true){
+/*				while(true){
 					try {
 						Socket socket = serverSocket.accept();
 						new Thread(new ClientHandler(socket)).start();
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
+				}*/
+				try{
+					Socket socket = serverSocket.accept();
+					new Thread(new ClientHandler(socket)).start();
+				}catch(IOException e){
+					e.printStackTrace();
 				}
 			}
 		}).start();
@@ -52,21 +59,17 @@ class ClientHandler implements Runnable{
 	public static final String KEY_OK = "KEY_OK";
 	
 	Socket socket;
-	BufferedReader in;
-	PrintWriter out;
 	
 	public ClientHandler(Socket socket) throws IOException {
 		System.out.println("Client connected");
 		this.socket = socket;
-		this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		this.out = new PrintWriter(socket.getOutputStream());
-		
+
 	}
 	
 	/*
 	 
 	 * */
-	@Override
+	/*@Override
 	public void run() {
 		String input;
 		try {
@@ -104,8 +107,33 @@ class ClientHandler implements Runnable{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}*/
+
+	@Override
+	public void run(){
+		BufferedReader in;
+		PrintWriter out;
+/*		while(true){
+			try{
+				in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				out = new PrintWriter(socket.getOutputStream());
+				if(in.readLine().equals(Client.FILE_TRANSFER_START)){
+					receiveFile(socket);
+				}
+			}catch (IOException e){
+				e.printStackTrace();
+			}
+		}*/
+		try{
+			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			out = new PrintWriter(socket.getOutputStream());
+			if(in.readLine().equals(Client.FILE_TRANSFER_START)){
+				receiveFile(socket);
+			}
+		}catch (IOException e){
+			e.printStackTrace();
+		}
 	}
-	
 	/**
 	 * Callback when the server receives Client.FILE_TRANSFER_START
 	 * @param socket
@@ -126,36 +154,54 @@ class ClientHandler implements Runnable{
 		
 		String transferParameters = bufferedReader.readLine();
 		
-		long fileLength = Long.parseLong(transferParameters.split(",", 2)[0].trim());
+		int fileLength = Integer.parseInt(transferParameters.split(",", 2)[0].trim());
 		String fileName= transferParameters.split(",", 2)[1].trim();
-		
 		String acknowledgementParams = String.format("%d, %s", fileLength, fileName);
 		
 		printWriter.println(acknowledgementParams);
 		printWriter.flush();
 		
-		int totalBytesTransferred = 0, numBytesRead;
+		File outputFile = new File(Client.DESTINATION_FILE_PATH + fileName);
+		if(outputFile.exists())
+			outputFile.delete();
 		
-		byte[] block = new byte[1000];
+		System.out.println("Receiving with parameters: " + acknowledgementParams);
+		
+		int totalBytesTransferred = 0, numBytesRead;
 		
 		CRC32 crc32 = new CRC32();
 		
 		while(totalBytesTransferred < fileLength){
+			
+			int blockSize = fileLength - totalBytesTransferred < 1000 
+					? fileLength - totalBytesTransferred : 1000;
+
+			System.out.format("Receiving bytes: %d to %d ",
+					totalBytesTransferred, totalBytesTransferred + blockSize);
+			
+			byte[] block = new byte[blockSize];
+			
 			numBytesRead = bufferedInputStream.read(block);
 			crc32.update(block);
 			
 			long crc32Value = crc32.getValue();
 			printWriter.println(crc32Value);
 			printWriter.flush();
+			System.out.print("CRC32 value sent: " + crc32Value);
 			
-			if(Client.OK.equals(bufferedReader.readLine())){
-				//TODO: Write blocks to a file
+			String response = bufferedReader.readLine();
+			System.out.println(" client: " + response);
+			if(Client.OK.equals(response)){
+				CryptoManager.appendBytesToFile(block, outputFile);
 				totalBytesTransferred += numBytesRead;
 			}
 			
-			else if (Client.FAIL.equals(bufferedReader.readLine()))
+			else if (Client.FAIL.equals(response))
 				continue;
-			else throw new IOException("CRC32 something failed");
+			
+			else {
+				throw new IOException("CRC32 something failed");
+			}
 		}
 		
 		String ended = bufferedReader.readLine();

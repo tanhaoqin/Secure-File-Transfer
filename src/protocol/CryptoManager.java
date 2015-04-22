@@ -157,8 +157,9 @@ public class CryptoManager {
         return finalBytes;
 	}
 	
-	public void writeBytesToFile(byte[] bytes, File file) throws IOException{
-		FileOutputStream fileOutputStream = new FileOutputStream(file);
+	public static void appendBytesToFile(byte[] bytes, File file) throws IOException{
+		FileOutputStream fileOutputStream = new FileOutputStream(file, true);
 		fileOutputStream.write(bytes);
+		fileOutputStream.close();
 	}
 }
