@@ -38,20 +38,23 @@ public class Client implements Runnable{
 	public static final String FILE_TRANSFER_START = "FILE_TRANSFER_START";
 	public static final String FILE_TRANSFER_END = "FILE_TRANSFER_END";
 	public static final String CLIENT_LOCATION_DIR = "client/";
-	public static final String TRANSFER_FILE_NAME = "haiku.txt";
-	public static final String TRANSFER_FILE_PATH = CLIENT_LOCATION_DIR + TRANSFER_FILE_NAME;
+
 	public static final String SERVER_FILE_PATH = "server/";
 	public static final String SESSION_KEY_START = "SESSION_KEY_START";
 	public static final String SESSION_KEY_END = "SESSION_KEY_END";
 	public static final String CERTIFICATE_REQUEST = "Hello SecStore, please prove your identity!";
 	public static final String CERTIFICATE_REQUEST_2 = "Give me your certificate signed by CA";
-	public static final String CERTIFICATE_NAME = "server.crt";
+	public static final String CERTIFICATE_NAME = "server.crt";	
+	public static  String TRANSFER_FILE_NAME;
+	public static String TRANSFER_FILE_PATH;
+
+	
 	
 	public static final int TIME_OUT_LENGTH = 10000;
 	
 	private Socket socket;
 	
-	private CryptoManager cryptoManager;
+	protected CryptoManager cryptoManager;
 	
 	public Socket getSocket() {
 		return socket;
@@ -68,7 +71,11 @@ public class Client implements Runnable{
 	}
 	
 	public static void main(String[] args) throws UnknownHostException, IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
-		new Client().run();		
+		for(String arg: args){
+			TRANSFER_FILE_NAME = arg;
+			TRANSFER_FILE_PATH = CLIENT_LOCATION_DIR + TRANSFER_FILE_NAME;
+			new Client().run();
+		}
 	}
 
 	public static byte[] fileToBytes(File file) throws IOException{
@@ -97,7 +104,8 @@ public class Client implements Runnable{
 		
 		nonce = String.valueOf(System.currentTimeMillis());
 		
-		printWriter.println(CERTIFICATE_REQUEST + nonce);
+		String sentRequest = CERTIFICATE_REQUEST + nonce; 
+		printWriter.println(sentRequest);
 		printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 		
 		encryptedResponse = bufferedReader.readLine();
@@ -108,7 +116,7 @@ public class Client implements Runnable{
 		}
 		cryptoManager.addPublicKeyFromCert(new File(CLIENT_LOCATION_DIR+CERTIFICATE_NAME));
 		boolean returnValue;
-		if(encryptedResponse.equals(cryptoManager.decryptWithPublicKey(encryptedResponse))){
+		if(sentRequest.equals(cryptoManager.decryptWithPublicKey(encryptedResponse))){
 			printWriter.println(OK);
 			printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 			returnValue = true;
@@ -159,7 +167,7 @@ public class Client implements Runnable{
 		if (!FILE_TRANSFER_START.equals(bufferedReader.readLine()))
 			throw new IOException("Start acknowledgement not received");
 		
-		System.out.println("Starting the transfer");
+		System.out.println("Starting file transfer");
 		
 		String transferParams = String.format("%d, %s", fileBytes.length, fileName);
 		printWriter.println(transferParams);
@@ -310,7 +318,7 @@ public class Client implements Runnable{
 		if (!SESSION_KEY_START.equals(bufferedReader.readLine()))
 			throw new IOException("Start acknowledgement not received");
 		
-		System.out.println("Starting the transfer");
+		System.out.println("Starting session key transfer");
 		
 		String transferParams = String.format("%d", keyBytes.length);
 		printWriter.println(transferParams);

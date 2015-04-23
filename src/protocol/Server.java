@@ -3,21 +3,16 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.zip.CRC32;
 
 import javax.crypto.BadPaddingException;
@@ -26,44 +21,35 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
+/**
+ * How to run:
+ * 
+ * 1.	Run program
+ * 2.	Received files will be put in the "server" folder
+ * 
+ * @author tes
+ *
+ */
 
 public class Server {
 
 	public static final String DESTINATION_FILE_DIR = "client/";
 	public static CryptoManager cryptoManager;
 	private static ServerSocket serverSocket;
-	public static SecretKey sessionKey;
 
 	public static void main(String[] args) throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, InterruptedException {
 		cryptoManager = new CryptoManager();
 		cryptoManager.setPrivateKey(new File("certs//privateServer.der"));
 		
 		serverSocket = new ServerSocket(4321);
-		Thread handleThread = new Thread(new ClientHandler(serverSocket.accept()));
-		handleThread.start();
-		handleThread.join();
-		System.out.println("hello");
-		File folder = new File("server//received");
-		System.out.println(folder.exists());
-		try{
-			for(File file: folder.listFiles()){
-				System.out.println(file.getName());
-				if(file.getName().contains("RSA")){
-					System.out.println("Decrypting RSA");
-					cryptoManager.appendBytesToFile(cryptoManager.decryptWithPrivateKey(file), new File("server//decrypted//"+file.getName()));
-				} else {
-					System.out.println("Decrypting AES");
-					cryptoManager.appendBytesToFile(cryptoManager.decryptWithKey(file, sessionKey), new File("server//decrypted//"+file.getName()));
-				}
-			}
-		}
-		catch(Exception e){
-			
+		while(true){
+			try{
+				Thread handleThread = new Thread(new ClientHandler(serverSocket.accept()));
+				handleThread.start();
+			}catch (Exception e){}
 		}
 	}
-	
 }
 
 class ClientHandler implements Runnable{
@@ -73,11 +59,12 @@ class ClientHandler implements Runnable{
 	public static final String PUBLIC_KEY = "PUBLIC_KEY";
 	public static final String RESEND_KEY = "RESEND_KEY";
 	public static final String KEY_OK = "KEY_OK";
-	
 	public static final String CERT_TRANSFER_START = "CERT_TRANSFER_START";
 	public static final String CERT_TRANSFER_END = "CERT_TRANSFER_END";
 	
+	private File file;
 	Socket socket;
+	
 	
 	SecretKey sessionKey;
 	
@@ -87,87 +74,55 @@ class ClientHandler implements Runnable{
 
 	}
 	
-	/*
-	 
-	 * */
-	/*@Override
-	public void run() {
-		String input;
-		try {
-			while(!(END_PROTOCOL).equals(input = in.readLine())){
-//				Handle file transfer
-				if(Client.FILE_TRANSFER_START.equals(input)){
-					
-					String fileName = "server//"+in.readLine();
-					System.out.println("File name: "+fileName);
-					
-					int length = Integer.parseInt(in.readLine());
-
-					int count = 0;
-					
-					byte[] byteArray = new byte[length];
-					
-					BufferedInputStream bufferedInputStream = new BufferedInputStream(socket.getInputStream());
-
-					int a = 0;
-					while(a != -1 && count < length){
-						a = bufferedInputStream.read();
-						System.out.println(a);
-						byteArray[count] = (byte) a;
-						count++;
-					}
-					
-					FileOutputStream fileOutputStream = new FileOutputStream(fileName);
-					fileOutputStream.write(byteArray);
-					fileOutputStream.close();
-				}
-				else if(Client.CERTIFICATE_REQUEST.equals(input)){
-					
-				}
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}*/
 
 	@Override
 	public void run(){
 		BufferedReader in;
 		PrintWriter out;
-/*		while(true){
-			try{
-				in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				out = new PrintWriter(socket.getOutputStream());
-				if(in.readLine().equals(Client.FILE_TRANSFER_START)){
-					receiveFile(socket);
-				}
-			}catch (IOException e){
-				e.printStackTrace();
-			}
-		}*/
 		try{
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			out = new PrintWriter(socket.getOutputStream());
 			String request = in.readLine();
-			boolean authenticated = false;
-			int receivedFiles = 0;
+			boolean fileTransferred = false;
+			
 			if(request.contains(Client.CERTIFICATE_REQUEST)){
-				if(serverAuthenticate(request)){
-					authenticated = true;
+				if(!serverAuthenticate(request)){
+					System.out.println("Authentication failed");
+					return;
 				}
-				while(receivedFiles < 2){
-					request = in.readLine();
+				
+				while(!fileTransferred){
+					try{
+						request = in.readLine();
+					}catch(SocketException e){
+						break;
+					}
+					
 					if(request.equals(Client.SESSION_KEY_START)){
 						acceptSessionKey();
 					}
 					if(request.equals(Client.FILE_TRANSFER_START)){
 						receiveFile(socket);
-						receivedFiles++;
+						fileTransferred = true;
 					}
 				}
 			}
 
 		}catch (IOException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeySpecException e){
+			e.printStackTrace();
+		}
+		try{
+			if(sessionKey != null){
+				System.out.println("Decrypting AES");
+				CryptoManager.appendBytesToFile(
+						Server.cryptoManager.decryptWithKey(file, sessionKey), new File("server//decrypted//"+file.getName()));
+			}
+			else{
+				System.out.println("Decrypting RSA");
+				CryptoManager.appendBytesToFile(
+						Server.cryptoManager.decryptWithPrivateKey(file), new File("server//decrypted//"+file.getName()));
+			}
+		}catch (Exception e){
 			e.printStackTrace();
 		}
 	}
@@ -278,7 +233,7 @@ class ClientHandler implements Runnable{
 		if(!Client.FILE_TRANSFER_END.equals(ended)){
 			throw new IOException("Client did not exit transfer properly");
 		}
-			
+		this.file = outputFile;
 	}
 	
 	public void uploadCert(byte[] fileBytes, Socket socket) throws IOException{
@@ -297,7 +252,7 @@ class ClientHandler implements Runnable{
 		if (!Client.FILE_TRANSFER_START.equals(bufferedReader.readLine()))
 			throw new IOException("Start acknowledgement not received");
 		
-		System.out.println("Starting the transfer");
+		System.out.println("Starting the certificate transfer");
 		
 		String transferParams = String.valueOf(fileBytes.length);
 		printWriter.println(transferParams);
@@ -396,9 +351,7 @@ class ClientHandler implements Runnable{
 		printWriter.println(acknowledgementParams);
 		printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 		
-		File outputFile = new File(Server.DESTINATION_FILE_DIR + "//sessionKey");
-		if(outputFile.exists())
-			outputFile.delete();
+		byte[] secretKeyByteArray = new byte[fileLength];
 		
 		System.out.println("Receiving with parameters: " + acknowledgementParams);
 		
@@ -427,7 +380,9 @@ class ClientHandler implements Runnable{
 			String response = bufferedReader.readLine();
 			System.out.println(" client: " + response);
 			if(Client.OK.equals(response)){
-				CryptoManager.appendBytesToFile(block, outputFile);
+				for(int i = 0; i < block.length; i++)
+					secretKeyByteArray[i + totalBytesTransferred] = block[i];
+				
 				totalBytesTransferred += numBytesRead;
 			}
 			
@@ -445,39 +400,8 @@ class ClientHandler implements Runnable{
 		if(!Client.SESSION_KEY_END.equals(ended)){
 			throw new IOException("Client did not exit transfer properly");
 		}
+
+		this.sessionKey = new SecretKeySpec(secretKeyByteArray, 0, secretKeyByteArray.length, "AES");
 		
-		Server.sessionKey = Server.cryptoManager.getAESKeyFromFile(outputFile);
-		
-		
-//		BufferedReader in;
-//		PrintWriter out;
-//		String sessionKeyString;
-//		String keyDigest;
-//				
-//		while(true){
-//			try{
-//				in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-//				out = new PrintWriter(socket.getOutputStream(), true);
-//				sessionKeyString = in.readLine();
-//				keyDigest = in.readLine();
-//				if (keyDigest.length() > sessionKeyString.length()){
-//					out.println(RESEND_KEY);
-//					continue;
-//				}
-//				
-//				out.println(keyDigest);
-//				if(in.readLine().equals(KEY_OK))
-//					break;
-//				
-//			}catch(IOException e){
-//				System.out.println(e.getMessage());
-//				try{
-//					Thread.sleep(100);
-//				}catch(InterruptedException e1){};
-//			}
-//		}
-//		
-//		byte[] secretKeyBytes = Base64.decode(sessionKeyString);
-//		return new SecretKeySpec(secretKeyBytes, "AES");
 	}
 }

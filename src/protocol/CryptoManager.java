@@ -78,7 +78,7 @@ public class CryptoManager {
 		int a = 0;
 		while(a != -1 && count < length){
 			a = bufferedInputStream.read();
-			System.out.println(a);
+			
 			byteArray[count] = (byte) a;
 			count++;
 		}
@@ -108,7 +108,7 @@ public class CryptoManager {
 		int a = 0;
 		while(a != -1 && count < length){
 			a = bufferedInputStream.read();
-			System.out.println(a);
+		
 			byteArray[count] = (byte) a;
 			count++;
 		}
@@ -150,7 +150,7 @@ public class CryptoManager {
 		int a = 0;
 		while(a != -1 && count < length){
 			a = bufferedInputStream.read();
-			System.out.println(a);
+	
 			byteArray[count] = (byte) a;
 			count++;
 		}
@@ -179,7 +179,7 @@ public class CryptoManager {
 		int a = 0;
 		while(a != -1 && count < length){
 			a = bufferedInputStream.read();
-			System.out.println(a);
+			
 			byteArray[count] = (byte) a;
 			count++;
 		}
@@ -249,7 +249,7 @@ public class CryptoManager {
 		int a = 0;
 		while(a != -1 && count < length){
 			a = bufferedInputStream.read();
-			System.out.println(a);
+			
 			byteArray[count] = (byte) a;
 			count++;
 		}
@@ -278,7 +278,6 @@ public class CryptoManager {
 		int a = 0;
 		while(a != -1 && count < length){
 			a = bufferedInputStream.read();
-			System.out.println(a);
 			byteArray[count] = (byte) a;
 			count++;
 		}
@@ -317,7 +316,6 @@ public class CryptoManager {
 		byte[] secretKeyByteArray = new byte[secretKeyFileStream.available()];
 		secretKeyFileStream.read(secretKeyByteArray);
 		secretKeyFileStream.close();
-		
 		return new SecretKeySpec(secretKeyByteArray, 0, secretKeyByteArray.length, "AES");
 	}
 	
