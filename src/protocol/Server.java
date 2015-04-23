@@ -34,7 +34,7 @@ public class Server {
 	public static final String DESTINATION_FILE_DIR = "client/";
 	public static CryptoManager cryptoManager;
 	private static ServerSocket serverSocket;
-	public static SecretKey sessionKey;
+	public static SecretKeySpec sessionKey;
 
 	public static void main(String[] args) throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, InterruptedException {
 		cryptoManager = new CryptoManager();
@@ -52,15 +52,15 @@ public class Server {
 				System.out.println(file.getName());
 				if(file.getName().contains("RSA")){
 					System.out.println("Decrypting RSA");
-					cryptoManager.appendBytesToFile(cryptoManager.decryptWithPrivateKey(file), new File("server//decrypted//"+file.getName()));
+					CryptoManager.appendBytesToFile(cryptoManager.decryptWithPrivateKey(file), new File("server//decrypted//"+file.getName()));
 				} else {
 					System.out.println("Decrypting AES");
-					cryptoManager.appendBytesToFile(cryptoManager.decryptWithKey(file, sessionKey), new File("server//decrypted//"+file.getName()));
+					CryptoManager.appendBytesToFile(cryptoManager.decryptWithKey(file, sessionKey), new File("server//decrypted//"+file.getName()));
 				}
 			}
 		}
 		catch(Exception e){
-			
+			e.printStackTrace();
 		}
 	}
 	
@@ -373,8 +373,12 @@ class ClientHandler implements Runnable{
 	 * @throws IOException 
 	 * @throws InvalidKeySpecException 
 	 * @throws NoSuchAlgorithmException 
+	 * @throws NoSuchPaddingException 
+	 * @throws BadPaddingException 
+	 * @throws IllegalBlockSizeException 
+	 * @throws InvalidKeyException 
 	 **/
-	public void acceptSessionKey() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException{
+	public void acceptSessionKey() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchPaddingException{
 		PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
 
 		BufferedInputStream bufferedInputStream = new 
@@ -396,7 +400,7 @@ class ClientHandler implements Runnable{
 		printWriter.println(acknowledgementParams);
 		printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 		
-		File outputFile = new File(Server.DESTINATION_FILE_DIR + "//sessionKey");
+		File outputFile = new File("server" + "//sessionKey");
 		if(outputFile.exists())
 			outputFile.delete();
 		
@@ -446,6 +450,10 @@ class ClientHandler implements Runnable{
 			throw new IOException("Client did not exit transfer properly");
 		}
 		
+//		byte[] decryptedBytes = Server.cryptoManager.decryptWithPrivateKey(outputFile);
+//		File decryptedKey = new File("server//decrypted//sessionKey");
+//		CryptoManager.appendBytesToFile(decryptedBytes, decryptedKey);
+//		System.out.println("Decrypted session key: "+decryptedBytes.length);
 		Server.sessionKey = Server.cryptoManager.getAESKeyFromFile(outputFile);
 		
 		
@@ -480,4 +488,5 @@ class ClientHandler implements Runnable{
 //		byte[] secretKeyBytes = Base64.decode(sessionKeyString);
 //		return new SecretKeySpec(secretKeyBytes, "AES");
 	}
+	
 }

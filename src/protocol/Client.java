@@ -96,9 +96,9 @@ public class Client implements Runnable{
 				BufferedReader(new InputStreamReader(socket.getInputStream()));
 		
 		nonce = String.valueOf(System.currentTimeMillis());
-		
-		printWriter.println(CERTIFICATE_REQUEST + nonce);
-		printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
+		String sentRequest =CERTIFICATE_REQUEST + nonce; 
+		printWriter.println(sentRequest);
+		printWriter.flush();try{Thread.sleep(30);}catch(InterruptedException e){};
 		
 		encryptedResponse = bufferedReader.readLine();
 		
@@ -108,7 +108,12 @@ public class Client implements Runnable{
 		}
 		cryptoManager.addPublicKeyFromCert(new File(CLIENT_LOCATION_DIR+CERTIFICATE_NAME));
 		boolean returnValue;
-		if(encryptedResponse.equals(cryptoManager.decryptWithPublicKey(encryptedResponse))){
+
+		System.out.println(cryptoManager.decryptWithPublicKey(encryptedResponse));
+		System.out.println(sentRequest);
+		System.out.println(cryptoManager.decryptWithPublicKey(encryptedResponse).hashCode());
+		System.out.println(sentRequest.hashCode());
+		if(sentRequest.trim().equals(cryptoManager.decryptWithPublicKey(encryptedResponse).trim())){
 			printWriter.println(OK);
 			printWriter.flush();try{Thread.sleep(20);}catch(InterruptedException e){};
 			returnValue = true;
@@ -375,8 +380,8 @@ public class Client implements Runnable{
 	private void initAES() throws NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchPaddingException, IOException{
 		cryptoManager.generateAES();		
 		SecretKey sessionKey = cryptoManager.getSessionKey();
-		byte[] keyBytes = cryptoManager.encryptWithPublicKey(sessionKey.getEncoded());
-		sendSessionKey(keyBytes);
+//		byte[] keyBytes = cryptoManager.encryptWithPublicKey(sessionKey.getEncoded());
+		sendSessionKey(sessionKey.getEncoded());
 	}
 	
 	public void uploadRSA(File file) throws InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException, IOException{
@@ -405,9 +410,9 @@ public class Client implements Runnable{
 				System.out.println("Authentication failed");
 				return;
 			}
-			cryptoManager.generateAES();
-			sendSessionKey(cryptoManager.getSessionKey().getEncoded());
-			
+//			cryptoManager.generateAES();
+//			sendSessionKey(cryptoManager.getSessionKey().getEncoded());
+			initAES();
 			System.out.println("File length: " + fileLength);
 			long rsaStart = System.currentTimeMillis();
 			uploadRSA(transferFile);
